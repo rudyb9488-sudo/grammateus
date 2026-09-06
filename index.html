@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Grammateus - Registro Docente Pro</title>
+<title>Grammateus - Sistema Docente Profesional Pro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -36,8 +36,8 @@
   .profile-wrap{position:relative;}
   .profile-btn{display:flex;align-items:center;gap:8px;background:#fff;color:var(--ink);}
   .avatar{width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;}
-  .profile-name{font-size:12.5px;max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .profile-menu{position:absolute;right:0;top:44px;width:190px;background:#fff;border-radius:12px;box-shadow:0 18px 45px rgba(34,41,29,.14);padding:6px;display:none;z-index:60;}
+  .profile-name{font-size:12.5px;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .profile-menu{position:absolute;right:0;top:44px;width:210px;background:#fff;border-radius:12px;box-shadow:0 18px 45px rgba(34,41,29,.14);padding:6px;display:none;z-index:60;}
   .profile-menu.open{display:block;}
   .profile-menu button{width:100%;border:0;background:transparent;text-align:left;padding:10px 11px;font-size:13px;color:var(--ink);border-radius:8px;display:flex;align-items:center;gap:8px;}
   .profile-menu button:hover{background:var(--paper-dim);}
@@ -78,14 +78,20 @@
   .pill-red{background:var(--red-pale);color:var(--red);}
   .pill-gray{background:var(--paper-dim);color:var(--ink-soft);}
 
-  .home-grid{display:grid;grid-template-columns:2fr 1fr;gap:20px;}
-  @media(max-width:900px){.home-grid{grid-template-columns:1fr;}}
+  .home-grid{display:grid;grid-template-columns:1fr;gap:20px;}
   .card-box{background:#fff;padding:22px;border-radius:14px;box-shadow:var(--shadow-soft);margin-bottom:20px;}
   .card-box h3{margin-top:0;font-family:'Lora',serif;font-size:18px;color:var(--green-dark);display:flex;align-items:center;gap:8px;}
-  .countdown-badge{background:var(--green-pale);color:var(--green-dark);padding:14px;border-radius:12px;font-size:15px;font-weight:600;text-align:center;margin-bottom:16px;}
-  .minerd-list{list-style:none;padding:0;margin:0;max-height:280px;overflow-y:auto;}
-  .minerd-list li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
-  .minerd-list li span:last-child{color:var(--ink-soft);font-size:12px;}
+  
+  /* CALENDARIO REAL INTERACTIVO INTEGRADO */
+  .calendar-container{background:#fff;padding:24px;border-radius:14px;box-shadow:var(--shadow-soft);margin-top:20px;}
+  .calendar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+  .calendar-grid{display:grid;grid-template-columns:repeat(7, 1fr);gap:6px;text-align:center;}
+  .cal-day-name{font-weight:700;font-size:12px;color:var(--ink-soft);padding:8px 0;text-transform:uppercase;}
+  .cal-cell{min-height:75px;border:1px solid var(--line);border-radius:8px;padding:6px;background:#fcfbf7;display:flex;flex-direction:column;justify-content:space-between;font-size:13px;}
+  .cal-cell.today{border-color:var(--green);background:var(--green-pale);font-weight:bold;}
+  .cal-cell.empty{background:transparent;border:none;}
+  .cal-date-num{font-weight:700;font-size:12px;align-self:flex-start;}
+  .cal-event-tag{background:var(--gold-pale);color:var(--gold);font-size:10px;padding:2px 4px;border-radius:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;}
 
   #undoToast {
     position: fixed; bottom: 20px; right: 20px; background: #22291D; color: #fff;
@@ -134,16 +140,35 @@
   <div id="undoToast"><span>Acción realizada.</span><button id="undoBtn">Deshacer</button></div>
 
 <script>
+  /* 
+     GRAMMATEUS - SISTEMA DOCENTE PROFESIONAL PRO (VERSIÓN AMPLIADA Y ROBUSTA)
+     Módulos integrados: 
+     - Gestión de Perfil de Usuario con cambio de Nombre en Vivo.
+     - Calendario Escolar Mensual Interactivo (MINERD 2026-2027) totalmente visible.
+     - Estructura completa de Grados, Asignaturas, Secciones y Alumnos.
+     - Registro de Asistencia por Historial y Fechas Pasadas.
+     - Sistema de Puntos, Méritos y Faltas Leves/Graves con selector dinámico y opción de motivo personalizado ("Otro").
+     - Reportes automáticos y análisis estadístico de incidencias comunes.
+     - Fichas individuales cronológicas para cada estudiante.
+     - Motor de Impresión optimizado para reportes en papel o PDF.
+     - Funcionalidad de Deshacer (Undo) instantánea para prevenir errores táctiles.
+  */
+
   function initApp() {
-    var STORAGE_KEY = "grammateus-data-v6";
+    var STORAGE_KEY = "grammateus-data-v7-pro";
     var state = {
+      userName: "Profesor",
       grades: [], groups: [], students: [], points: [], attendance: [],
-      selectedGroup: null, collapsedGrades: {}, activeTab: "estudiantes", attendanceDate: todayISO()
+      selectedGroup: null, collapsedGrades: {}, activeTab: "estudiantes", attendanceDate: todayISO(),
+      currentCalYear: 2026, currentCalMonth: 8 // Septiembre por defecto (0-indexado)
     };
 
     var lastAction = null;
 
-    function todayISO(){var d=new Date(),m=(d.getMonth()+1+"").padStart(2,"0"),day=(d.getDate()+"").padStart(2,"0");return d.getFullYear()+"-"+m+"-"+day;}
+    function todayISO(){
+      var d=new Date(),m=(d.getMonth()+1+"").padStart(2,"0"),day=(d.getDate()+"").padStart(2,"0");
+      return d.getFullYear()+"-"+m+"-"+day;
+    }
     function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
     function escapeHtml(s){return (s+"").replace(/[&<>"']/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 
@@ -153,7 +178,11 @@
     function storageGet(){var value=null;try{value=localStorage.getItem(STORAGE_KEY);}catch(e){}return Promise.resolve(value?{value:value}:null);}
     
     function save(){
-      var data={grades:state.grades,groups:state.groups,students:state.students,points:state.points,attendance:state.attendance,selectedGroup:state.selectedGroup,collapsedGrades:state.collapsedGrades};
+      var data={
+        userName: state.userName, grades:state.grades, groups:state.groups, 
+        students:state.students, points:state.points, attendance:state.attendance, 
+        selectedGroup:state.selectedGroup, collapsedGrades:state.collapsedGrades
+      };
       storageSet(JSON.stringify(data));
     }
     
@@ -163,8 +192,11 @@
           try{
             var data = JSON.parse(res.value);
             Object.assign(state, data);
-            state.grades=Array.isArray(state.grades)?state.grades:[]; state.groups=Array.isArray(state.groups)?state.groups:[];
-            state.students=Array.isArray(state.students)?state.students:[]; state.points=Array.isArray(state.points)?state.points:[];
+            if(data.userName) state.userName = data.userName;
+            state.grades=Array.isArray(state.grades)?state.grades:[]; 
+            state.groups=Array.isArray(state.groups)?state.groups:[];
+            state.students=Array.isArray(state.students)?state.students:[]; 
+            state.points=Array.isArray(state.points)?state.points:[];
             state.attendance=Array.isArray(state.attendance)?state.attendance:[];
           }catch(e){}
         }
@@ -285,42 +317,73 @@
       }
     }
 
+    // CALENDARIO REAL MINERD INTERACTIVO
     function renderHomeDashboard(){
       var wrap = el('<div></div>');
-      var targetDate = new Date('2027-06-18');
-      var diffTime = targetDate - new Date();
-      var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      if(diffDays < 0) diffDays = 0;
-
       var totalStudents = state.students.length;
       var totalGroups = state.groups.length;
 
-      wrap.appendChild(el(
+      var monthsNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+      
+      var calBox = el('<div></div>');
+      
+      function buildCalendarHTML(year, month){
+        var firstDayIndex = new Date(year, month, 1).getDay();
+        var totalDays = new Date(year, month + 1, 0).getDate();
+        
+        // Feriados oficiales MINERD 2026-2027 integrados
+        var holidays = {
+          "2026-8-16": "Restauración", "2026-8-24": "Inicio Clases", "2026-9-24": "Ntra. Sra. Mercedes",
+          "2026-11-9": "Día Constitución", "2026-12-25": "Navidad", "2027-1-1": "Año Nuevo",
+          "2027-1-21": "Día Altagracia", "2027-1-25": "Duarte", "2027-2-27": "Independencia",
+          "2027-3-26": "Viernes Santo", "2027-5-3": "Día del Trabajo", "2027-5-27": "Corpus Christi", "2027-6-18": "Cierre Clases"
+        };
+
+        var html = '<div class="calendar-container">'+
+          '<div class="calendar-header">'+
+            '<button class="btn btn-sm" id="prevMonth">◀ Mes Anterior</button>'+
+            '<h3 style="margin:0; font-family:Lora,serif; color:var(--green-dark);">Calendario Escolar: '+monthsNames[month]+' '+year+'</h3>'+
+            '<button class="btn btn-sm" id="nextMonth">Mes Siguiente ▶</button>'+
+          '</div>'+
+          '<div class="calendar-grid">'+
+            '<div class="cal-day-name">Dom</div><div class="cal-day-name">Lun</div><div class="cal-day-name">Mar</div>'+
+            '<div class="cal-day-name">Mié</div><div class="cal-day-name">Jue</div><div class="cal-day-name">Vie</div><div class="cal-day-name">Sáb</div>';
+
+        var c=0;
+        for(var i=0; i<firstDayIndex; i++){
+          html += '<div class="cal-cell empty"></div>';
+          c++;
+        }
+
+        for(var d=1; d<=totalDays; d++){
+          var dateKey = year + "-" + month + "-" + d;
+          var holidayText = holidays[dateKey] || "";
+          var isToday = (todayISO() === (year + "-" + String(month+1).padStart(2,'0') + "-" + String(d).padStart(2,'0')));
+          
+          html += '<div class="cal-cell'+(isToday?" today":"")+'">'+
+            '<span class="cal-date-num">'+d+'</span>'+
+            (holidayText ? '<span class="cal-event-tag" title="'+escapeHtml(holidayText)+'">'+escapeHtml(holidayText)+'</span>' : '')+
+          '</div>';
+          c++;
+        }
+        html += '</div></div>';
+        return html;
+      }
+
+      var dashboardHTML = el(
         '<div class="panel-head"><h2>Panel General y Calendario Escolar</h2></div>'+
-        '<div class="countdown-badge">📅 Faltan <strong>'+diffDays+' días</strong> de clases para culminar el Año Escolar oficial del MINERD (18 de junio de 2027)</div>'+
+        '<div class="countdown-badge">📅 Año Escolar Oficial MINERD 2026-2027 (Del 24 de agosto de 2026 al 18 de junio de 2027)</div>'+
         '<div class="home-grid">'+
-          '<div>'+
-            '<div class="card-box">'+
-              '<h3>📚 Mis Cursos y Resumen</h3>'+
-              '<p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:14px;">Tienes <strong>'+totalGroups+' asignaturas</strong> registradas con un total de <strong>'+totalStudents+' estudiantes</strong> activos en este dispositivo.</p>'+
-              (totalGroups === 0 ? '<p style="font-size:13px;color:var(--gold);">Comienza creando un grado y una asignatura en el panel izquierdo.</p>' : '<div id="quickCourseList"></div>')+
-            '</div>'+
+          '<div class="card-box">'+
+            '<h3>📚 Mis Cursos y Resumen</h3>'+
+            '<p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:14px;">Tienes <strong>'+totalGroups+' asignaturas</strong> registradas con un total de <strong>'+totalStudents+' estudiantes</strong> activos.</p>'+
+            (totalGroups === 0 ? '<p style="font-size:13px;color:var(--gold);">Comienza creando un grado y una asignatura en el panel izquierdo.</p>' : '<div id="quickCourseList"></div>')+
           '</div>'+
-          '<div>'+
-            '<div class="card-box">'+
-              '<h3>🗓️ Próximos Feriados MINERD</h3>'+
-              '<ul class="minerd-list">'+
-                '<li><span>Nuestra Señora de la Altagracia</span><span>21 Ene</span></li>'+
-                '<li><span>Natalicio de Juan Pablo Duarte</span><span>25 Ene</span></li>'+
-                '<li><span>Independencia Nacional</span><span>27 Feb</span></li>'+
-                '<li><span>Viernes Santo (Semana Santa)</span><span>26 Mar</span></li>'+
-                '<li><span>Día del Trabajo</span><span>3 May</span></li>'+
-                '<li><span>Corpus Christi</span><span>27 May</span></li>'+
-              '</ul>'+
-            '</div>'+
-          '</div>'+
-        '</div>'
-      ));
+        '</div>'+
+        '<div id="calendarWrapper"></div>'
+      );
+
+      wrap.appendChild(dashboardHTML);
 
       if(totalGroups > 0){
         var qList = wrap.querySelector("#quickCourseList");
@@ -332,6 +395,23 @@
           qList.appendChild(btn);
         });
       }
+
+      var calWrap = wrap.querySelector("#calendarWrapper");
+      function renderCalendarWidget(){
+        calWrap.innerHTML = buildCalendarHTML(state.currentCalYear, state.currentCalMonth);
+        calWrap.querySelector("#prevMonth").addEventListener("click", function(){
+          state.currentCalMonth--;
+          if(state.currentCalMonth < 0){ state.currentCalMonth = 11; state.currentCalYear--; }
+          renderCalendarWidget();
+        });
+        calWrap.querySelector("#nextMonth").addEventListener("click", function(){
+          state.currentCalMonth++;
+          if(state.currentCalMonth > 11){ state.currentCalMonth = 0; state.currentCalYear++; }
+          renderCalendarWidget();
+        });
+      }
+      renderCalendarWidget();
+
       return wrap;
     }
 
@@ -342,7 +422,6 @@
       wrap.appendChild(logo);
 
       var actions = el('<div class="top-actions"></div>');
-      
       var printBtn = el('<button class="btn" onclick="window.print()">🖨️ Imprimir / PDF</button>');
       actions.appendChild(printBtn);
 
@@ -350,12 +429,16 @@
       addBtn.addEventListener("click", function(){ openGradeModal(); }); actions.appendChild(addBtn);
 
       var profile=el('<div class="profile-wrap"></div>');
-      var profileBtn=el('<button class="btn profile-btn" type="button"><span class="avatar">PR</span><span class="profile-name">Profesor</span> ▼</button>');
+      var profileBtn=el('<button class="btn profile-btn" type="button"><span class="avatar">PR</span><span class="profile-name">'+escapeHtml(state.userName)+'</span> ▼</button>');
       var menuBox=el('<div class="profile-menu"></div>');
       
+      var editProfileBtn = el('<button type="button">✏️ Cambiar Nombre</button>');
+      editProfileBtn.addEventListener("click", function(){ openEditProfileModal(); menuBox.classList.remove("open"); });
+
       var editCoursesBtn = el('<button type="button">⚙️ Editar cursos</button>');
       editCoursesBtn.addEventListener("click", function(){ openEditCoursesModal(); menuBox.classList.remove("open"); });
       
+      menuBox.appendChild(editProfileBtn);
       menuBox.appendChild(editCoursesBtn);
       profileBtn.addEventListener("click",function(e){e.stopPropagation();menuBox.classList.toggle("open");});
       document.addEventListener("click",function(e){if(!profile.contains(e.target))menuBox.classList.remove("open");});
@@ -432,7 +515,6 @@
       var tbody=document.createElement("tbody");
       students.forEach(function(s){
         var tr=el('<tr><td><strong style="cursor:pointer;color:var(--green);" class="st-link">'+escapeHtml(s.name)+'</strong></td><td style="text-align:right;"></td></tr>');
-        
         tr.querySelector(".st-link").addEventListener("click", function(){ openStudentProfileModal(s); });
 
         var delBtn=el('<button class="btn btn-ghost btn-sm" style="color:var(--red);">Eliminar</button>');
@@ -617,7 +699,6 @@
         var balancePill = balance > 0 ? "pill-green" : (balance < 0 ? "pill-red" : "pill-gray");
 
         tbody.appendChild(el('<tr><td><strong style="cursor:pointer;color:var(--green);" class="st-link">'+escapeHtml(s.name)+'</strong></td><td class="num" style="color:var(--green);">+'+pos+'</td><td class="num" style="color:var(--red);">'+neg+'</td><td class="num"><span class="pill '+balancePill+'">'+(balance>0?"+":"")+balance+'</span></td></tr>'));
-        
         tbody.lastChild.querySelector(".st-link").addEventListener("click", function(){ openStudentProfileModal(s); });
       });
 
@@ -648,6 +729,18 @@
 
       backdrop.appendChild(modal); document.body.appendChild(backdrop);
       modal.querySelector("#closeProfile").addEventListener("click", function(){ document.body.removeChild(backdrop); });
+    }
+
+    function openEditProfileModal(){
+      var backdrop = el('<div class="modal-backdrop"></div>');
+      var modal = el('<div class="modal"><h3>Cambiar Nombre de Usuario</h3><label class="field-label">Nombre del Profesor</label><input type="text" id="userNameInput" value="'+escapeHtml(state.userName)+'"><div class="modal-actions"><button class="btn" id="cancelProfile">Cancelar</button><button class="btn btn-primary" id="saveProfile">Guardar</button></div></div>');
+      backdrop.appendChild(modal); document.body.appendChild(backdrop);
+      modal.querySelector("#cancelProfile").addEventListener("click", function(){ document.body.removeChild(backdrop); });
+      modal.querySelector("#saveProfile").addEventListener("click", function(){
+        var val = modal.querySelector("#userNameInput").value.trim();
+        if(val) { state.userName = val; scheduleSave(); render(); }
+        document.body.removeChild(backdrop);
+      });
     }
 
     function openGradeModal(){
