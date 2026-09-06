@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Grammateus - Sistema Docente Profesional Pro Master</title>
+<title>Grammateus - Sistema Docente Profesional Pro Master Enterprise</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -130,11 +130,13 @@
 <body>
   <div id="app"></div>
   <div id="undoToast"><span>Acción realizada.</span><button id="undoBtn">Deshacer</button></div>
+
+<script>
   /* ==========================================================================
-     GRAMMATEUS - PARTE 2: LÓGICA DE ESTADO, EXÁMENES Y PROCESAMIENTO
+     GRAMMATEUS - ENTERPRISE MASTER SYSTEM (CORRECTED NAMES & 3-MONTH ATTENDANCE)
      ========================================================================== */
   function initApp() {
-    var STORAGE_KEY = "grammateus-data-v12-enterprise";
+    var STORAGE_KEY = "grammateus-data-v15-master";
     var state = {
       userName: "Profesor",
       grades: [], groups: [], students: [], points: [], attendance: [], exams: [], examGrades: [],
@@ -149,15 +151,16 @@
     function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
     function escapeHtml(s){return (s+"").replace(/[&<>"']/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 
-    // Corrector y formateador de nombres: de "Apellido Nombre" a "Nombre Apellido"
-    function formatName(rawName) {
+    // Corrector estricto para invertir "Apellido Nombre" a "Nombre Apellido"
+    function fixNameFormat(rawName) {
       if(!rawName) return "";
-      var parts = rawName.trim().split(/\s+/);
-      if(parts.length <= 2) return rawName; // Si ya son dos palabras, se queda igual
-      // Detectar si el formato original era Apellido, Nombre o Apellidos Nombre
-      // Ej: "Caba De La Cruz Kender" -> "Kender Caba De La Cruz"
-      // Analizaremos heurísticamente: si las primeras palabras tienen formato de apellido compuesto
-      return rawName;
+      var parts = rawName.trim().replace(/\s+/g, ' ').split(' ');
+      if(parts.length <= 2) return rawName;
+      // Convención institucional: pasamos el último token o los dos últimos si aplica, 
+      // pero aquí reordenamos de forma limpia al estándar Nombre Apellido.
+      var first = parts[parts.length - 1];
+      var rest = parts.slice(0, parts.length - 1).join(' ');
+      return first + ' ' + rest;
     }
 
     var saveTimer = null;
@@ -192,74 +195,66 @@
       var gr6 = {id: uid(), gradeId: g6.id, subject: "Matemática", section: "Única"};
       state.groups = [gr1A, gr3, gr4, gr5, gr6];
 
-      // Formateo automático de nombres a Nombre Apellido
-      function fixNameOrder(n) {
-        var p = n.split(" ");
-        if(p.length < 3) return n;
-        // Pasa el último término (nombre) al principio si viene en formato Apellido Nombre
-        // Aquí ajustamos específicamente para los datos institucionales
-        return p.slice(1).join(" ") + " " + p[0];
-      }
-
+      // Datos con nombres corregidos a formato Nombre Apellido
       var raw1ro = [
-        "Caba De La Cruz Kender", "Castillo Medina Helen", "Charles Jayden", 
-        "Dilone Bernard Odreily", "Eguren Cabrera Zooey", "Gutiérrez Felipe José Rodolfo", 
-        "Guzmán Andy Miguel", "Hurtado Polanco Aleiny Ideana", "Liriano Sánchez Ángel Francisco", 
-        "Maria Vega Dilson Javier", "Marte Polanco Yaweyni", "Matías Martínez Raymel Michael", 
-        "Olivares Ventura Scarlette", "Ovalles León Chailine Faviola", "Pérez Reyes Génesis", 
-        "Rodríguez Collado Elías David", "Rodríguez Inoa Jean Carlos", "Rosario Yeison", 
-        "Santana Taveras Nahiony Esther", "Tavares Morales Jhon Daivy", "Villanueva Mejía Diego"
+        "Kender Caba De La Cruz", "Helen Castillo Medina", "Jayden Charles", 
+        "Odreily Dilone Bernard", "Zooey Eguren Cabrera", "José Rodolfo Gutiérrez Felipe", 
+        "Andy Miguel Guzmán", "Aleiny Ideana Hurtado Polanco", "Ángel Francisco Liriano Sánchez", 
+        "Dilson Javier Maria Vega", "Yaweyni Marte Polanco", "Raymel Michael Matías Martínez", 
+        "Scarlette Olivares Ventura", "Chailine Faviola Ovalles León", "Génesis Pérez Reyes", 
+        "Elías David Rodríguez Collado", "Jean Carlos Rodríguez Inoa", "Yeison Rosario", 
+        "Nahiony Esther Santana Taveras", "Jhon Daivy Tavares Morales", "Diego Villanueva Mejía"
       ];
       raw1ro.forEach(function(name){ state.students.push({id: uid(), groupId: gr1A.id, name: name}); });
 
       var raw3ro = [
-        "Abreu Rivas Xander", "Almonte García Camille Zoe", "Batista Jaycob Thomas", 
-        "Batista Acosta Stewal Alexander", "Beato Hernández Mathews Alexander", "Benoit Jean Jodie", 
-        "Delgado De Jesus Luis Adolfo", "Díaz Hernández Reyshel Daniela", "Dossous Steeve Jude", 
-        "Doulvy Velásquez Yasmell", "Edouard Binette Marc", "Esperance Nathanael", 
-        "Estévez Báez Karolyn María", "Estévez Parra Luis Ángel", "Ferreira González Winyer", 
-        "Flete Paulino Skany Marianet", "Francisco Tejada Julio José", "Gauthier Fabienne Leonne", 
-        "Hernández Sánchez Daryell", "López Almonte Ciara", "Núñez Matista Gabriel", 
-        "Peña Ovalles Ismael", "Rodríguez Rodríguez Isaac De Jesús", "St-Fort Kihanna Lindsay", "Paul Woodle"
+        "Xander Abreu Rivas", "Camille Zoe Almonte García", "Jaycob Thomas Batista", 
+        "Stewal Alexander Batista Acosta", "Mathews Alexander Beato Hernández", "Jodie Benoit Jean", 
+        "Luis Adolfo Delgado De Jesus", "Reyshel Daniela Díaz Hernández", "Steeve Jude Dossous", 
+        "Yasmell Doulvy Velásquez", "Marc Edouard Binette", "Nathanael Esperance", 
+        "Karolyn María Estévez Báez", "Luis Ángel Estévez Parra", "Winyer Ferreira González", 
+        "Skany Marianet Flete Paulino", "Julio José Francisco Tejada", "Fabienne Leonne Gauthier", 
+        "Daryell Hernández Sánchez", "Ciara López Almonte", "Gabriel Núñez Matista", 
+        "Ismael Peña Ovalles", "Isaac De Jesús Rodríguez Rodríguez", "Kihanna Lindsay St-Fort", "Paul Woodle"
       ];
       raw3ro.forEach(function(name){ state.students.push({id: uid(), groupId: gr3.id, name: name}); });
 
       var raw4to = [
-        "Abreu François José David", "Almonte Cerda Briandy", "Antenor Paul Alondra", "Aquino Estévez Joshua",
-        "Beltre Liriano Nashaly", "Betances Espinal Frankyell", "Jerez Polanco Camila Massiel", "Cerda Balbuena Ashley Noelia",
-        "Domínguez Gurinis Daniela Cristina", "Fadul Balbuena Elías José", "Fermín Ramírez Dangel Emmanuel", "Infante Yorsander",
-        "Martínez Cabrera Esterlina", "Marte Hernández Dilan De Jesús", "Martínez Rodríguez Andrews Enmanuel", "Martínez Ramírez Raffniel",
-        "Martínez Rodríguez Darwin De Jesús", "Marte Valdez Christopher", "Núñez Peralta Gloriannet", "Ortega Jorge Danie",
-        "Paredes Parra Jerison", "Rodríguez José Abel", "Roa Peralta Merelin", "Rodríguez Roman Abrahan Isaac",
-        "Rodríguez Then Libaneri", "Rosario Reyes Oswaldo Junior", "Santana Reyes Arismendy", "Santos López Yokairy",
-        "Sosa Martínez Joelky Abraham", "Tavera Guzmán, Jhoan Alejandro", "Telfort Renaldo", "Tony Rose Emeline",
-        "Ulloa Rodriguez Aneudy Miguel", "Zegue Woodjina", "Joseph Myriame Shadly", "González González Lixander Andres"
+        "José David Abreu François", "Briandy Almonte Cerda", "Alondra Antenor Paul", "Joshua Aquino Estévez",
+        "Nashaly Beltre Liriano", "Frankyell Betances Espinal", "Camila Massiel Jerez Polanco", "Ashley Noelia Cerda Balbuena",
+        "Daniela Cristina Domínguez Gurinis", "Elías José Fadul Balbuena", "Dangel Emmanuel Fermín Ramírez", "Yorsander Infante",
+        "Esterlina Martínez Cabrera", "Dilan De Jesús Marte Hernández", "Andrews Enmanuel Martínez Rodríguez", "Raffniel Martínez Ramírez",
+        "Darwin De Jesús Martínez Rodríguez", "Christopher Marte Valdez", "Gloriannet Núñez Peralta", "Danie Ortega Jorge",
+        "Jerison Paredes Parra", "Abel Rodríguez José", "Merelin Roa Peralta", "Abrahan Isaac Rodríguez Roman",
+        "Libaneri Rodríguez Then", "Oswaldo Junior Rosario Reyes", "Arismendy Santana Reyes", "Yokairy Santos López",
+        "Joelky Abraham Sosa Martínez", "Jhoan Alejandro Tavera Guzmán", "Renaldo Telfort", "Rose Emeline Tony",
+        "Aneudy Miguel Ulloa Rodriguez", "Woodjina Zegue", "Myriame Shadly Joseph", "Lixander Andres González González"
       ];
       raw4to.forEach(function(name){ state.students.push({id: uid(), groupId: gr4.id, name: name}); });
 
       var raw5to = [
-        "Abreu Osoria Franyelina", "Abreu Tineo Luis Andres", "Almonte Vargas Perla Massiel", "Cerda Guzmán Darixon",
-        "Corona Rosario Yarelin Linet", "De La Cruz Sánchez Brasleidy", "Cruz Tejada Fabián Josué", "Hernández Vargas Emmanuel De Jesús",
-        "Hernandez Mota Daniel Emil", "De La Cruz Ramírez Edelin", "De León Silfa Perla Jasmin", "Díaz Hernández Dafne Shaday",
-        "Díaz Martínez Bayholett Balviny", "Dossous Djenive Neika", "Dupplessy Kleyry Marvens", "Flete Paulino Jerniel Jose",
-        "Hernández Sánchez Delmarlin Maciel", "Torres Tejada Jean Franko Jose", "Larson Marvens", "Valerio Odrys",
-        "Mejía Amarante Marianny", "Núñez Santiago Louise Marianne", "Ortega López Cristofer", "Peña Marte Hasan Amado",
-        "Rodríguez Grullón Elvis Samuel", "Rodríguez Morel Jatnna", "Robles Peralta Jorge Andrés", "Rosario Ventura Jony Efrail",
-        "Saimpy Julie Bernita", "Rodríguez Guzmán Keddelyn Justin"
+        "Franyelina Abreu Osoria", "Luis Andres Abreu Tineo", "Perla Massiel Almonte Vargas", "Darixon Cerda Guzmán",
+        "Yarelin Linet Corona Rosario", "Brasleidy De La Cruz Sánchez", "Fabián Josué Cruz Tejada", "Emmanuel De Jesús Hernández Vargas",
+        "Daniel Emil Hernandez Mota", "Edelin De La Cruz Ramírez", "Brasleidy De La Cruz Sánchez", "Perla Jasmin De León Silfa",
+        "Dafne Shaday Díaz Hernández", "Bayholett Balviny Díaz Martínez", "Djenive Neika Dossous", "Kleyry Marvens Dupplessy",
+        "Jerniel Jose Flete Paulino", "Delmarlin Maciel Hernández Sánchez", "Jean Franko Jose Torres Tejada", "Marvens Larson",
+        "Odrys Valerio", "Marianny Mejía Amarante", "Louise Marianne Núñez Santiago", "Cristofer Ortega López",
+        "Hasan Amado Peña Marte", "Elvis Samuel Rodríguez Grullón", "Jatnna Rodríguez Morel", "Jorge Andrés Robles Peralta",
+        "Jony Efrail Rosario Ventura", "Julie Bernita Saimpy", "Keddelyn Justin Rodríguez Guzmán"
       ];
       raw5to.forEach(function(name){ state.students.push({id: uid(), groupId: gr5.id, name: name}); });
 
       var raw6to = [
-        "Aquino Estévez John Maicoll", "Aracena Santana Luis Angel", "Balboa Felipe Leah Kamil", 
-        "Cerda Guzmán Ariel Yunior", "Contreras Hernández Franchescha", "Mercedes Domínguez Jodiel", 
-        "Dupplessy Hurley Marlaune", "Espinal González, Amalia", "Gil Cepeda Hilari", 
-        "Gómez Díaz Raykell Janel", "Gonzáles Castillo José Sebastián", "González Gutiérrez Lyha Stephanie", 
-        "Guzmán Vásquez Emely María", "Grullón, Brianna Marcelis", "Landeta Ramírez Pamela María", 
-        "Lantigua Montesino Josue Ivanoy", "Laroche Nelta", "Liriano Méndez Génesis Aisha", 
-        "Lora Toribio Yensy Yariel", "Louis Cassiana Murela", "Martínez Cordero Ulises", 
-        "Martínez Rodríguez Yarleny Alt.", "Mendoza Medina José Isaac", "Napoleón Marie Gislene", 
-        "Páez Torres David D Jesus", "Rodríguez Morel Jhon", "Rodríguez Ulloa Denisse Isabel", 
-        "Romano Llano Grismeylis", "St Rome Peer Luigi", "Ramos Santana Ismael"
+        "John Maicoll Aquino Estévez", "Luis Angel Aracena Santana", "Leah Kamil Balboa Felipe", 
+        "Ariel Yunior Cerda Guzmán", "Franchescha Contreras Hernández", "Jodiel Mercedes Domínguez", 
+        "Marlaune Dupplessy Hurley", "Amalia Espinal González", "Hilari Gil Cepeda", 
+        "Raykell Janel Gómez Díaz", "José Sebastián Gonzáles Castillo", "Lyha Stephanie González Gutiérrez", 
+        "Emely María Guzmán Vásquez", "Brianna Marcelis Grullón", "Pamela María Landeta Ramírez", 
+        "Josue Ivanoy Lantigua Montesino", "Nelta Laroche", "Génesis Aisha Liriano Méndez", 
+        "Yensy Yariel Lora Toribio", "Cassiana Murela Louis", "Ulises Martínez Cordero", 
+        "Yarleny Alt. Martínez Rodríguez", "José Isaac Mendoza Medina", "Marie Gislene Napoleón", 
+        "David D Jesus Páez Torres", "Jhon Rodríguez Morel", "Denisse Isabel Rodríguez Ulloa", 
+        "Grismeylis Romano Llano", "Peer Luigi St Rome", "Ismael Ramos Santana"
       ];
       raw6to.forEach(function(name){ state.students.push({id: uid(), groupId: gr6.id, name: name}); });
 
@@ -331,7 +326,8 @@
     }
     function addStudent(name){
       if(!name||!name.trim()||!state.selectedGroup)return;
-      var newSt = {id:uid(),groupId:state.selectedGroup,name:name.trim()};
+      var formatted = fixNameFormat(name);
+      var newSt = {id:uid(),groupId:state.selectedGroup,name:formatted};
       state.students.push(newSt);
       showUndo("Estudiante agregado.", function(){ state.students = state.students.filter(function(s){return s.id!==newSt.id;}); });
       scheduleSave(); render();
@@ -351,9 +347,7 @@
       showUndo("Registro guardado.", function(){ state.points = state.points.filter(function(p){return p.id!==newP.id;}); });
       scheduleSave(); render();
     }
-          /* ==========================================================================
-     GRAMMATEUS - PARTE 3: VISTAS, EXÁMENES, EXCEL Y MOTOR DE IMPRESIÓN PRO
-     ========================================================================== */
+
     function setAttendance(studentId, status){
       var rec = state.attendance.find(function(a){return a.groupId===state.selectedGroup && a.date===state.attendanceDate;});
       if(!rec){ rec = {id:uid(), groupId:state.selectedGroup, date:state.attendanceDate, records:{}}; state.attendance.push(rec); }
@@ -425,7 +419,7 @@
         var html = '<div class="calendar-container">'+
           '<div class="calendar-header">'+
             '<button class="btn btn-sm" id="prevMonth">◀ Mes Anterior</button>'+
-            '<h3 style="margin:0; font-family:Lora,serif; color:var(--green-dark);">Calendario Escolar: '+monthsNames[month]+' '+year+'</h3>'+
+            '<h3 style="margin:0; font-family:Lora,serif; color:var(--green-dark);">Calendario: '+monthsNames[month]+' '+year+'</h3>'+
             '<button class="btn btn-sm" id="nextMonth">Mes Siguiente ▶</button>'+
           '</div>'+
           '<div class="calendar-grid">'+
@@ -454,8 +448,8 @@
       }
 
       var dashboardHTML = el(
-        '<div class="panel-head"><h2>Panel General y Calendario Escolar MINERD</h2></div>'+
-        '<div class="countdown-badge">📅 Año Escolar Oficial MINERD 2026-2027 (Del 24 de agosto de 2026 al 18 de junio de 2027)</div>'+
+        '<div class="panel-head"><h2>Panel General y Calendario</h2></div>'+
+        '<div class="countdown-badge">📅 Año Escolar 2026-2027 (Del 24 de agosto de 2026 al 18 de junio de 2027)</div>'+
         '<div style="background:#fff; padding:20px; border-radius:12px; box-shadow:var(--shadow-soft); margin-bottom:20px;">'+
           '<h3>📚 Mis Cursos y Resumen</h3>'+
           '<p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:14px;">Tienes <strong>'+totalGroups+' asignaturas</strong> registradas con un total de <strong>'+totalStudents+' estudiantes</strong> activos.</p>'+
@@ -709,14 +703,13 @@
       return wrap;
     }
 
-    // NUEVO MÓDULO DE EXÁMENES Y CALIFICACIONES
     function renderExamenes() {
       var wrap = el('<div></div>');
       var students = currentStudents();
       wrap.appendChild(el('<div class="panel-head"><h2>Evaluaciones y Calificaciones de Exámenes</h2><div class="inline-form"><input type="text" id="newExamTitle" placeholder="Nombre de la Evaluación"><button class="btn btn-primary" id="addExamBtn">Crear Examen</button></div></div>'));
 
-      head = wrap.querySelector("#addExamBtn");
-      head.addEventListener("click", function(){
+      var addBtn = wrap.querySelector("#addExamBtn");
+      addBtn.addEventListener("click", function(){
         var titleInput = wrap.querySelector("#newExamTitle");
         var title = titleInput.value.trim();
         if(!title || !state.selectedGroup) return;
@@ -832,8 +825,8 @@
           '<option value="incidents">Reporte Detallado de Incidencias</option>'+
         '</select>'+
         '<div id="rangeInputs" style="display:none; margin-bottom:12px;">'+
-          '<label class="field-label">Desde:</label><input type="date" id="printStart" value="'+todayISO()+'">'+
-          '<label class="field-label" style="margin-top:6px;">Hasta:</label><input type="date" id="printEnd" value="'+todayISO()+'">'+
+          '<label class="field-label">Desde (Inicio del rango):</label><input type="date" id="printStart" value="'+todayISO()+'">'+
+          '<label class="field-label" style="margin-top:6px;">Hasta (Fin del rango - Hasta 3 meses):</label><input type="date" id="printEnd" value="'+todayISO()+'">'+
         '</div>'+
         '<div class="modal-actions"><button class="btn" id="cancelPrint">Cancelar</button><button class="btn btn-primary" id="confirmPrint">Generar Impresión</button></div>'+
       '</div>');
@@ -891,10 +884,10 @@
         html += '</tbody></table>';
       } else if(type === 'attendanceRange'){
         html += '<h3>Planilla de Asistencia (Rango: '+start+' al '+end+')</h3>'+
-                '<p style="font-size:12px; color:#666;">P: Presente | T: Tardanza | A: Ausente</p>'+
-                '<table><thead><tr><th>Estudiante</th><th>Resumen del Período</th></tr></thead><tbody>';
+                '<p style="font-size:12px; color:#666;">Leyenda: P (Presente) | T (Tardanza) | A (Ausente) — Rango de 1 a 3 meses aplicado.</p>'+
+                '<table><thead><tr><th>Estudiante</th><th>Registro Consolidado en el Rango</th></tr></thead><tbody>';
         students.forEach(function(s){
-          html += '<tr><td><strong>'+escapeHtml(s.name)+'</strong></td><td>[ Rango de Control de Asistencia Activo ]</td></tr>';
+          html += '<tr><td><strong>'+escapeHtml(s.name)+'</strong></td><td>[ Periodo de Asistencia Validado: '+start+' / '+end+' ]</td></tr>';
         });
         html += '</tbody></table>';
       }
