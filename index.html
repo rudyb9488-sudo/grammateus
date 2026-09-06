@@ -78,11 +78,10 @@
   .pill-red{background:var(--red-pale);color:var(--red);}
   .pill-gray{background:var(--paper-dim);color:var(--ink-soft);}
 
-  .home-grid{display:grid;grid-template-columns:1fr;gap:20px;}
   .card-box{background:#fff;padding:22px;border-radius:14px;box-shadow:var(--shadow-soft);margin-bottom:20px;}
   .card-box h3{margin-top:0;font-family:'Lora',serif;font-size:18px;color:var(--green-dark);display:flex;align-items:center;gap:8px;}
   
-  /* CALENDARIO REAL INTERACTIVO INTEGRADO */
+  /* CALENDARIO REAL MINERD */
   .calendar-container{background:#fff;padding:24px;border-radius:14px;box-shadow:var(--shadow-soft);margin-top:20px;}
   .calendar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
   .calendar-grid{display:grid;grid-template-columns:repeat(7, 1fr);gap:6px;text-align:center;}
@@ -111,25 +110,19 @@
   .modal h3{margin:0 0 4px;font-family:'Lora',serif;}
   .modal .hint{font-size:12.5px;color:var(--ink-soft);margin:0 0 16px;}
   .modal .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
-  .modal input{width:100%;padding:9px 10px;border:0;box-shadow:inset 0 0 0 1px #e5dfd0,0 2px 7px rgba(34,41,29,.03);border-radius:10px;font-size:14px;margin-top:4px;background:#fff;outline:none;}
+  .modal input, .modal select{width:100%;padding:9px 10px;border:0;box-shadow:inset 0 0 0 1px #e5dfd0,0 2px 7px rgba(34,41,29,.03);border-radius:10px;font-size:14px;margin-top:4px;background:#fff;outline:none;}
   .field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);display:block;margin-top:10px;}
-  .points-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--card);border:0;box-shadow:var(--shadow-soft);border-radius:var(--radius);padding:14px;margin-bottom:16px;}
-  .toggle-sign{display:flex;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;}
-  .toggle-sign button{border:none;background:var(--card);padding:8px 14px;font-weight:700;font-size:15px;color:var(--ink-soft);border-radius:0;}
-  .toggle-sign button.active-plus{background:var(--green);color:#fff;}
-  .toggle-sign button.active-minus{background:var(--red);color:#fff;}
-  .edit-course-list{max-height:300px;overflow-y:auto;margin-bottom:16px;}
-  .edit-course-card{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px;}
-  .edit-course-card h4{margin:0 0 8px 0;display:flex;justify-content:space-between;align-items:center;}
-  .edit-course-card ul{list-style:none;padding:0;margin:0;}
-  .edit-course-card li{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px dashed var(--line);font-size:13.5px;}
   
+  .print-view-only { display: none; }
+
   @media print {
     body { background: #fff; color: #000; }
     .topbar, .tree-panel, .tabs-row, .inline-form, .btn, .points-form, #undoToast { display: none !important; }
     .main-content { padding: 0 !important; max-width: 100% !important; }
     .table-wrap { box-shadow: none !important; border: 1px solid #000 !important; }
     th { background: #eee !important; color: #000 !important; border-bottom: 2px solid #000 !important; }
+    .print-view-only { display: block !important; margin-bottom: 20px; font-family: 'Inter', sans-serif; }
+    .no-print { display: none !important; }
   }
 
   @media(max-width:800px){.topbar{padding:10px 14px;min-height:64px;flex-wrap:wrap;}.layout{display:block;min-height:0;}.tree-panel{display:none;padding:14px;}.tree-panel.mobile-open{display:block;}.mobile-menu{display:inline-flex;}.main-content{padding:22px 14px 50px;}}
@@ -140,35 +133,19 @@
   <div id="undoToast"><span>Acción realizada.</span><button id="undoBtn">Deshacer</button></div>
 
 <script>
-  /* 
-     GRAMMATEUS - SISTEMA DOCENTE PROFESIONAL PRO (VERSIÓN AMPLIADA Y ROBUSTA)
-     Módulos integrados: 
-     - Gestión de Perfil de Usuario con cambio de Nombre en Vivo.
-     - Calendario Escolar Mensual Interactivo (MINERD 2026-2027) totalmente visible.
-     - Estructura completa de Grados, Asignaturas, Secciones y Alumnos.
-     - Registro de Asistencia por Historial y Fechas Pasadas.
-     - Sistema de Puntos, Méritos y Faltas Leves/Graves con selector dinámico y opción de motivo personalizado ("Otro").
-     - Reportes automáticos y análisis estadístico de incidencias comunes.
-     - Fichas individuales cronológicas para cada estudiante.
-     - Motor de Impresión optimizado para reportes en papel o PDF.
-     - Funcionalidad de Deshacer (Undo) instantánea para prevenir errores táctiles.
-  */
-
   function initApp() {
-    var STORAGE_KEY = "grammateus-data-v7-pro";
+    var STORAGE_KEY = "grammateus-data-v8-pro";
     var state = {
       userName: "Profesor",
       grades: [], groups: [], students: [], points: [], attendance: [],
       selectedGroup: null, collapsedGrades: {}, activeTab: "estudiantes", attendanceDate: todayISO(),
-      currentCalYear: 2026, currentCalMonth: 8 // Septiembre por defecto (0-indexado)
+      currentCalYear: 2026, currentCalMonth: 8
     };
 
     var lastAction = null;
 
-    function todayISO(){
-      var d=new Date(),m=(d.getMonth()+1+"").padStart(2,"0"),day=(d.getDate()+"").padStart(2,"0");
-      return d.getFullYear()+"-"+m+"-"+day;
-    }
+    function todayISO(){var d=new Date(),m=(d.getMonth()+1+"").padStart(2,"0"),day=(d.getDate()+"").padStart(2,"0");return d.getFullYear()+"-"+m+"-"+day;}
+    function nowTimeStr(){var d=new Date(); return String(d.getHours()).padStart(2,'0')+":"+String(d.getMinutes()).padStart(2,'0');}
     function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
     function escapeHtml(s){return (s+"").replace(/[&<>"']/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 
@@ -260,7 +237,7 @@
     }
     function addPoints(studentId, amount, reason){
       if(!studentId || !amount) return;
-      var newP = {id:uid(), studentId:studentId, amount:amount, reason:(reason||"General").trim(), date:todayISO()};
+      var newP = {id:uid(), studentId:studentId, amount:amount, reason:(reason||"General").trim(), date:todayISO(), time:nowTimeStr()};
       state.points.push(newP);
       showUndo("Registro guardado.", function(){ state.points = state.points.filter(function(p){return p.id!==newP.id;}); });
       scheduleSave(); render();
@@ -317,26 +294,21 @@
       }
     }
 
-    // CALENDARIO REAL MINERD INTERACTIVO
+    // CALENDARIO REAL MINERD
     function renderHomeDashboard(){
       var wrap = el('<div></div>');
       var totalStudents = state.students.length;
       var totalGroups = state.groups.length;
-
       var monthsNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-      
-      var calBox = el('<div></div>');
       
       function buildCalendarHTML(year, month){
         var firstDayIndex = new Date(year, month, 1).getDay();
         var totalDays = new Date(year, month + 1, 0).getDate();
-        
-        // Feriados oficiales MINERD 2026-2027 integrados
         var holidays = {
-          "2026-8-16": "Restauración", "2026-8-24": "Inicio Clases", "2026-9-24": "Ntra. Sra. Mercedes",
-          "2026-11-9": "Día Constitución", "2026-12-25": "Navidad", "2027-1-1": "Año Nuevo",
-          "2027-1-21": "Día Altagracia", "2027-1-25": "Duarte", "2027-2-27": "Independencia",
-          "2027-3-26": "Viernes Santo", "2027-5-3": "Día del Trabajo", "2027-5-27": "Corpus Christi", "2027-6-18": "Cierre Clases"
+          "2026-7-16": "Restauración", "2026-7-24": "Inicio Clases", "2026-8-24": "Ntra. Sra. Mercedes",
+          "2026-10-9": "Día Constitución", "2026-11-25": "Navidad", "2027-0-1": "Año Nuevo",
+          "2027-0-21": "Día Altagracia", "2027-0-25": "Duarte", "2027-1-27": "Independencia",
+          "2027-2-26": "Viernes Santo", "2027-4-3": "Día del Trabajo", "2027-4-27": "Corpus Christi", "2027-5-18": "Cierre Clases"
         };
 
         var html = '<div class="calendar-container">'+
@@ -373,12 +345,10 @@
       var dashboardHTML = el(
         '<div class="panel-head"><h2>Panel General y Calendario Escolar</h2></div>'+
         '<div class="countdown-badge">📅 Año Escolar Oficial MINERD 2026-2027 (Del 24 de agosto de 2026 al 18 de junio de 2027)</div>'+
-        '<div class="home-grid">'+
-          '<div class="card-box">'+
-            '<h3>📚 Mis Cursos y Resumen</h3>'+
-            '<p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:14px;">Tienes <strong>'+totalGroups+' asignaturas</strong> registradas con un total de <strong>'+totalStudents+' estudiantes</strong> activos.</p>'+
-            (totalGroups === 0 ? '<p style="font-size:13px;color:var(--gold);">Comienza creando un grado y una asignatura en el panel izquierdo.</p>' : '<div id="quickCourseList"></div>')+
-          '</div>'+
+        '<div style="background:#fff; padding:20px; border-radius:12px; box-shadow:var(--shadow-soft); margin-bottom:20px;">'+
+          '<h3>📚 Mis Cursos y Resumen</h3>'+
+          '<p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:14px;">Tienes <strong>'+totalGroups+' asignaturas</strong> registradas con un total de <strong>'+totalStudents+' estudiantes</strong> activos.</p>'+
+          (totalGroups === 0 ? '<p style="font-size:13px;color:var(--gold);">Comienza creando un grado y una asignatura en el panel izquierdo.</p>' : '<div id="quickCourseList"></div>')+
         '</div>'+
         '<div id="calendarWrapper"></div>'
       );
@@ -422,7 +392,10 @@
       wrap.appendChild(logo);
 
       var actions = el('<div class="top-actions"></div>');
-      var printBtn = el('<button class="btn" onclick="window.print()">🖨️ Imprimir / PDF</button>');
+      
+      // BOTÓN DE IMPRESIÓN CON SELECTOR
+      var printBtn = el('<button class="btn">🖨️ Imprimir / PDF</button>');
+      printBtn.addEventListener("click", function(){ openPrintSelectorModal(); });
       actions.appendChild(printBtn);
 
       var addBtn = el('<button class="btn btn-primary">+ Grado</button>');
@@ -568,24 +541,22 @@
       return wrap;
     }
 
+    // PUNTOS Y FALTAS SIN DESPLEGABLE DE ALUMNOS (LISTADO DIRECTO)
     function renderPuntos(){
       var wrap = el('<div></div>');
-      wrap.appendChild(el('<div class="panel-head"><h2>Registro de Puntos y Faltas</h2></div>'));
+      wrap.appendChild(el('<div class="panel-head"><h2>Registro Rápido de Puntos y Faltas</h2></div>'));
       var students = currentStudents();
       if(!students.length){
         wrap.appendChild(el('<div class="empty"><h2>Agrega estudiantes primero</h2></div>'));
         return wrap;
       }
 
-      var form = el(
-        '<div class="points-form" style="flex-direction:column; align-items:stretch; gap:12px;">'+
-          '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">'+
-            '<select id="pointStudent" style="flex:1; padding:9px; border-radius:8px; border:1px solid #ccc;"></select>'+
-            '<div class="toggle-sign"><button type="button" id="signPlus" class="active-plus">+ Mérito</button><button type="button" id="signMinus">− Falta</button></div>'+
-            '<input type="number" id="pointAmount" min="1" value="1" style="width:60px; padding:9px; border-radius:8px; border:1px solid #ccc;">'+
-          '</div>'+
-          '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">'+
-            '<select id="reasonSelect" style="flex:2; padding:9px; border-radius:8px; border:1px solid #ccc;">'+
+      // Selector global de razón para aplicar con un clic a cualquier alumno
+      var controlBox = el(
+        '<div style="background:#fff; padding:16px; border-radius:12px; box-shadow:var(--shadow-soft); margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">'+
+          '<div style="flex:1; min-width:260px;">'+
+            '<label class="field-label" style="margin-top:0;">Motivo predeterminado para el registro:</label>'+
+            '<select id="globalReason" style="width:100%; padding:9px; border-radius:8px; border:1px solid #ccc;">'+
               '<optgroup label="Faltas Leves">'+
                 '<option value="Llegada tarde">Llegada tarde</option>'+
                 '<option value="Uso indebido de celular">Uso indebido de celular</option>'+
@@ -604,53 +575,72 @@
               '</optgroup>'+
               '<option value="OTRO">Otro (escribir motivo)...</option>'+
             '</select>'+
-            '<input type="text" id="pointReasonCustom" placeholder="Especifica el motivo..." style="flex:2; padding:9px; border-radius:8px; border:1px solid #ccc; display:none;">'+
-            '<button class="btn btn-primary" id="addPointBtn" style="padding:10px 20px;">Registrar</button>'+
+          '</div>'+
+          '<div style="flex:1; min-width:200px;" id="customReasonWrap" style="display:none;">'+
+            '<label class="field-label" style="margin-top:0;">Especifique motivo:</label>'+
+            '<input type="text" id="globalCustomReason" placeholder="Motivo personalizado...">'+
           '</div>'+
         '</div>'
       );
 
-      var sel = form.querySelector("#pointStudent");
-      students.forEach(function(s){ var opt=document.createElement("option"); opt.value=s.id; opt.textContent=s.name; sel.appendChild(opt); });
-
-      var sign = 1;
-      form.querySelector("#signPlus").addEventListener("click", function(){ sign=1; this.classList.add("active-plus"); form.querySelector("#signMinus").classList.remove("active-minus"); });
-      form.querySelector("#signMinus").addEventListener("click", function(){ sign=-1; this.classList.add("active-minus"); form.querySelector("#signPlus").classList.remove("active-plus"); });
-
-      var reasonSelect = form.querySelector("#reasonSelect");
-      var customInput = form.querySelector("#pointReasonCustom");
-      reasonSelect.addEventListener("change", function(){
-        if(this.value === "OTRO") { customInput.style.display = "block"; customInput.focus(); }
-        else { customInput.style.display = "none"; }
+      var gReason = controlBox.querySelector("#globalReason");
+      var gCustom = controlBox.querySelector("#globalCustomReason");
+      gReason.addEventListener("change", function(){
+        if(this.value === "OTRO") { gCustom.style.display = "block"; gCustom.focus(); }
+        else { gCustom.style.display = "none"; }
       });
+      wrap.appendChild(controlBox);
 
-      form.querySelector("#addPointBtn").addEventListener("click", function(){
-        var studentId = form.querySelector("#pointStudent").value;
-        var amount = parseInt(form.querySelector("#pointAmount").value,10) || 1;
-        var reason = reasonSelect.value === "OTRO" ? customInput.value : reasonSelect.value;
-        if(!reason) reason = "General";
-        addPoints(studentId, amount * sign, reason);
-      });
-
-      wrap.appendChild(form);
-
+      // Tabla directa de estudiantes con botones de mérito y falta
       var tableWrap = el('<div class="table-wrap"></div>');
-      var table = el('<table><thead><tr><th>Estudiante</th><th>Motivo / Razón</th><th class="num">Impacto</th></tr></thead></table>');
+      var table = el('<table><thead><tr><th>Estudiante</th><th style="text-align:right;">Acciones Rápidas (Méritos / Faltas)</th></tr></thead></table>');
       var tbody = document.createElement("tbody");
-      
+
+      students.forEach(function(s){
+        var tr = el('<tr><td><strong>'+escapeHtml(s.name)+'</strong></td><td style="text-align:right;"></td></tr>');
+        var cell = tr.lastChild;
+        var btnGroup = el('<div style="display:flex; gap:6px; justify-content:flex-end; align-items:center;"></div>');
+        
+        var plusBtn = el('<button class="btn btn-sm" style="background:var(--green-pale); color:var(--green-dark);">+ Mérito</button>');
+        plusBtn.addEventListener("click", function(){
+          var r = gReason.value === "OTRO" ? (gCustom.value || "General") : gReason.value;
+          addPoints(s.id, 1, r);
+        });
+
+        var minusBtn = el('<button class="btn btn-sm" style="background:var(--red-pale); color:var(--red);">− Falta</button>');
+        minusBtn.addEventListener("click", function(){
+          var r = gReason.value === "OTRO" ? (gCustom.value || "General") : gReason.value;
+          addPoints(s.id, -1, r);
+        });
+
+        btnGroup.appendChild(plusBtn);
+        btnGroup.appendChild(minusBtn);
+        cell.appendChild(btnGroup);
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody); tableWrap.appendChild(table); wrap.appendChild(tableWrap);
+
+      // Historial reciente de incidencias abajo
+      wrap.appendChild(el('<h3 style="font-family:Lora,serif; margin-top:24px;">Historial de Incidencias en este Grupo</h3>'));
+      var histWrap = el('<div class="table-wrap"></div>');
+      var histTable = el('<table><thead><tr><th>Fecha / Hora</th><th>Estudiante</th><th>Motivo / Razón</th><th class="num">Impacto</th></tr></thead></table>');
+      var histTbody = document.createElement("tbody");
+
       var groupPoints = state.points.filter(function(p){ return students.some(function(s){return s.id===p.studentId;}); }).sort(function(a,b){return b.date.localeCompare(a.date);});
-      
       if(!groupPoints.length){
-        tbody.appendChild(el('<tr><td colspan="3" style="text-align:center;color:var(--ink-soft);padding:20px;">No hay registros todavía.</td></tr>'));
+        histTbody.appendChild(el('<tr><td colspan="4" style="text-align:center;color:var(--ink-soft);padding:20px;">No hay registros todavía.</td></tr>'));
       } else {
         groupPoints.forEach(function(p){
           var st = students.find(function(s){return s.id===p.studentId;});
           var stName = st ? st.name : "Desconocido";
           var pillClass = p.amount > 0 ? "pill-green" : "pill-red";
-          tbody.appendChild(el('<tr><td><strong>'+escapeHtml(stName)+'</strong></td><td>'+escapeHtml(p.reason)+'</td><td class="num"><span class="pill '+pillClass+'">'+(p.amount>0?"+":"")+p.amount+'</span></td></tr>'));
+          var timeStr = p.time || "00:00";
+          histTbody.appendChild(el('<tr><td>'+p.date+' '+timeStr+'</td><td><strong>'+escapeHtml(stName)+'</strong></td><td>'+escapeHtml(p.reason)+'</td><td class="num"><span class="pill '+pillClass+'">'+(p.amount>0?"+":"")+p.amount+'</span></td></tr>'));
         });
       }
-      table.appendChild(tbody); tableWrap.appendChild(table); wrap.appendChild(tableWrap);
+      histTable.appendChild(histTbody); histWrap.appendChild(histTable); wrap.appendChild(histWrap);
+
       return wrap;
     }
 
@@ -706,6 +696,69 @@
       return wrap;
     }
 
+    function openPrintSelectorModal(){
+      var backdrop = el('<div class="modal-backdrop"></div>');
+      var modal = el('<div class="modal"><h3>Seleccionar formato de impresión</h3><p class="hint">Elija qué documento oficial desea generar en papel o PDF.</p><div style="display:flex; flex-direction:column; gap:10px; margin-top:15px;"><button class="btn btn-primary" id="printListBtn">🖨️ Imprimir Lista de Estudiantes</button><button class="btn btn-primary" id="printReportBtn">🖨️ Imprimir Reportes e Incidencias (con Día y Hora)</button></div><div class="modal-actions"><button class="btn" id="cancelPrint">Cancelar</button></div></div>');
+      backdrop.appendChild(modal); document.body.appendChild(backdrop);
+
+      modal.querySelector("#cancelPrint").addEventListener("click", function(){ document.body.removeChild(backdrop); });
+      modal.querySelector("#printListBtn").addEventListener("click", function(){
+        document.body.removeChild(backdrop);
+        preparePrintView('list');
+      });
+      modal.querySelector("#printReportBtn").addEventListener("click", function(){
+        document.body.removeChild(backdrop);
+        preparePrintView('reports');
+      });
+    }
+
+    function preparePrintView(type){
+      var group = state.groups.find(function(g){return g.id===state.selectedGroup;});
+      var grade = group ? state.grades.find(function(gr){return gr.id===group.gradeId;}) : null;
+      var students = currentStudents();
+
+      var printDiv = document.getElementById("printAreaContainer");
+      if(!printDiv){
+        printDiv = document.createElement("div");
+        printDiv.id = "printAreaContainer";
+        printDiv.className = "print-view-only";
+        document.body.insertBefore(printDiv, document.body.firstChild);
+      }
+
+      var html = '<h2 style="font-family:Lora,serif; margin-bottom:5px;">Grammateus - Reporte Oficial MINERD</h2>'+
+                 '<p style="margin:0 0 15px 0; font-size:13px; color:#555;">Docente: '+escapeHtml(state.userName)+' | Grado: '+escapeHtml(grade?grade.name:"General")+' | Asignatura: '+escapeHtml(groupLabel(group))+' | Fecha de emisión: '+todayISO()+' '+nowTimeStr()+'</p>';
+
+      if(type === 'list'){
+        html += '<h3 style="border-bottom:2px solid #000; padding-bottom:4px;">Lista Oficial de Estudiantes</h3>'+
+                '<table style="width:100%; border-collapse:collapse; margin-top:10px;">'+
+                '<thead><tr style="background:#eee;"><th style="border:1px solid #000; padding:8px;">No.</th><th style="border:1px solid #000; padding:8px;">Nombre del Estudiante</th><th style="border:1px solid #000; padding:8px;">Asistencia / Observaciones</th></tr></thead><tbody>';
+        students.forEach(function(s, idx){
+          html += '<tr><td style="border:1px solid #000; padding:8px; width:50px;">'+(idx+1)+'</td><td style="border:1px solid #000; padding:8px;"><strong>'+escapeHtml(s.name)+'</strong></td><td style="border:1px solid #000; padding:8px;"></td></tr>';
+        });
+        html += '</tbody></table>';
+      } else {
+        html += '<h3 style="border-bottom:2px solid #000; padding-bottom:4px;">Reporte Detallado de Incidencias y Conducta</h3>'+
+                '<table style="width:100%; border-collapse:collapse; margin-top:10px;">'+
+                '<thead><tr style="background:#eee;"><th style="border:1px solid #000; padding:8px;">Día y Hora</th><th style="border:1px solid #000; padding:8px;">Estudiante</th><th style="border:1px solid #000; padding:8px;">Incidencia / Motivo</th><th style="border:1px solid #000; padding:8px; text-align:right;">Impacto</th></tr></thead><tbody>';
+        
+        var groupPoints = state.points.filter(function(p){ return students.some(function(s){return s.id===p.studentId;}); }).sort(function(a,b){return b.date.localeCompare(a.date);});
+        if(!groupPoints.length){
+          html += '<tr><td colspan="4" style="border:1px solid #000; padding:12px; text-align:center;">No hay incidencias registradas.</td></tr>';
+        } else {
+          groupPoints.forEach(function(p){
+            var st = students.find(function(s){return s.id===p.studentId;});
+            var stName = st ? st.name : "Desconocido";
+            var timeStr = p.time || "00:00";
+            html += '<tr><td style="border:1px solid #000; padding:8px;">'+p.date+' '+timeStr+'</td><td style="border:1px solid #000; padding:8px;"><strong>'+escapeHtml(stName)+'</strong></td><td style="border:1px solid #000; padding:8px;">'+escapeHtml(p.reason)+'</td><td style="border:1px solid #000; padding:8px; text-align:right;">'+(p.amount>0?"+":"")+p.amount+'</td></tr>';
+          });
+        }
+        html += '</tbody></table>';
+      }
+
+      printDiv.innerHTML = html;
+      window.print();
+    }
+
     function openStudentProfileModal(student){
       var backdrop = el('<div class="modal-backdrop"></div>');
       var sPoints = state.points.filter(function(p){return p.studentId===student.id;}).sort(function(a,b){return b.date.localeCompare(a.date);});
@@ -715,7 +768,8 @@
       else {
         sPoints.forEach(function(p){
           var col = p.amount > 0 ? "var(--green)" : "var(--red)";
-          pointsHtml += '<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed var(--line); font-size:13px;"><span><strong>'+escapeHtml(p.reason)+'</strong> ('+p.date+')</span><span style="color:'+col+'; font-weight:bold;">'+(p.amount>0?"+":"")+p.amount+'</span></div>';
+          var timeStr = p.time || "00:00";
+          pointsHtml += '<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed var(--line); font-size:13px;"><span><strong>'+escapeHtml(p.reason)+'</strong> ('+p.date+' '+timeStr+')</span><span style="color:'+col+'; font-weight:bold;">'+(p.amount>0?"+":"")+p.amount+'</span></div>';
         });
       }
 
@@ -743,24 +797,37 @@
       });
     }
 
+    var GRADE_OPTIONS = ["1ro de Secundaria","2do de Secundaria","3ro de Secundaria","4to de Secundaria","5to de Secundaria","6to de Secundaria"];
+    var SUBJECT_OPTIONS = ["Lengua Española","Matemática","Ciencias de la Naturaleza","Ciencias Sociales","Inglés","Informática / Tecnología","Otra"];
+
     function openGradeModal(){
       var backdrop = el('<div class="modal-backdrop"></div>');
-      var modal = el('<div class="modal"><h3>Crear grado</h3><label class="field-label">Nombre del Grado</label><input type="text" id="gradeNameInput" placeholder="Ej: 1ro de Secundaria"><div class="modal-actions"><button class="btn" id="cancelGrade">Cancelar</button><button class="btn btn-primary" id="saveGrade">Guardar</button></div></div>');
+      var modal = el('<div class="modal"><h3>Seleccionar Grado</h3><label class="field-label">Grado</label><select id="gradeNameInput"></select><div class="modal-actions"><button class="btn" id="cancelGrade">Cancelar</button><button class="btn btn-primary" id="saveGrade">Guardar</button></div></div>');
       backdrop.appendChild(modal); document.body.appendChild(backdrop);
+      var select = modal.querySelector("#gradeNameInput");
+      GRADE_OPTIONS.forEach(function(name){ var opt=document.createElement("option"); opt.value=name; opt.textContent=name; select.appendChild(opt); });
+      
       modal.querySelector("#cancelGrade").addEventListener("click", function(){ document.body.removeChild(backdrop); });
       modal.querySelector("#saveGrade").addEventListener("click", function(){
-        var val = modal.querySelector("#gradeNameInput").value; if(val) addGrade(val);
+        var name=select.value; if(!name) return;
+        var existing=state.grades.find(function(g){return g.name===name;}); 
+        if(!existing) addGrade(name);
         document.body.removeChild(backdrop);
       });
     }
 
     function openGroupModal(gradeId){
       var backdrop = el('<div class="modal-backdrop"></div>');
-      var modal = el('<div class="modal"><h3>Nueva asignatura</h3><label class="field-label">Asignatura</label><input type="text" id="subInput" placeholder="Ej: Matemática"><label class="field-label">Sección</label><input type="text" id="secInput" placeholder="Ej: B"><div class="modal-actions"><button class="btn" id="cancelGroup">Cancelar</button><button class="btn btn-primary" id="saveGroup">Guardar</button></div></div>');
+      var modal = el('<div class="modal"><h3>Nueva Asignatura / Sección</h3><label class="field-label">Asignatura</label><select id="subjectInput"></select><label class="field-label">Sección</label><input type="text" id="secInput" placeholder="Ej: A, B..."><div class="modal-actions"><button class="btn" id="cancelGroup">Cancelar</button><button class="btn btn-primary" id="saveGroup">Guardar</button></div></div>');
       backdrop.appendChild(modal); document.body.appendChild(backdrop);
+      var subjectInput = modal.querySelector("#subjectInput");
+      SUBJECT_OPTIONS.forEach(function(name){ var opt=document.createElement("option"); opt.value=name; opt.textContent=name; subjectInput.appendChild(opt); });
+
       modal.querySelector("#cancelGroup").addEventListener("click", function(){ document.body.removeChild(backdrop); });
       modal.querySelector("#saveGroup").addEventListener("click", function(){
-        addGroup(gradeId, modal.querySelector("#subInput").value, modal.querySelector("#secInput").value);
+        var sub = subjectInput.value==="Otra"?"":subjectInput.value;
+        var sec = modal.querySelector("#secInput").value;
+        addGroup(gradeId, sub, sec);
         document.body.removeChild(backdrop);
       });
     }
