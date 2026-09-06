@@ -81,7 +81,6 @@
   .card-box{background:#fff;padding:22px;border-radius:14px;box-shadow:var(--shadow-soft);margin-bottom:20px;}
   .card-box h3{margin-top:0;font-family:'Lora',serif;font-size:18px;color:var(--green-dark);display:flex;align-items:center;gap:8px;}
   
-  /* CALENDARIO REAL MINERD */
   .calendar-container{background:#fff;padding:24px;border-radius:14px;box-shadow:var(--shadow-soft);margin-top:20px;}
   .calendar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
   .calendar-grid{display:grid;grid-template-columns:repeat(7, 1fr);gap:6px;text-align:center;}
@@ -131,10 +130,12 @@
 <body>
   <div id="app"></div>
   <div id="undoToast"><span>Acción realizada.</span><button id="undoBtn">Deshacer</button></div>
-
-<script>
+  <script>
+  /* ==========================================================================
+     GRAMMATEUS - SECCIÓN 2: LÓGICA CORE, ESTADO Y PRECARGA DE DATOS MINERD
+     ========================================================================== */
   function initApp() {
-    var STORAGE_KEY = "grammateus-data-v8-pro";
+    var STORAGE_KEY = "grammateus-data-v11-full";
     var state = {
       userName: "Profesor",
       grades: [], groups: [], students: [], points: [], attendance: [],
@@ -163,6 +164,89 @@
       storageSet(JSON.stringify(data));
     }
     
+    function seedInitialData(){
+      if(state.grades.length > 0) return;
+
+      var g1 = {id: uid(), name: "1ro de Secundaria"};
+      var g3 = {id: uid(), name: "3ro de Secundaria"};
+      var g4 = {id: uid(), name: "4to de Secundaria"};
+      var g5 = {id: uid(), name: "5to de Secundaria"};
+      var g6 = {id: uid(), name: "6to de Secundaria"};
+      state.grades = [g1, g3, g4, g5, g6];
+
+      var gr1A = {id: uid(), gradeId: g1.id, subject: "Matemática", section: "A"};
+      var gr3 = {id: uid(), gradeId: g3.id, subject: "Matemática", section: "Única"};
+      var gr4 = {id: uid(), gradeId: g4.id, subject: "Matemática", section: "Única"};
+      var gr5 = {id: uid(), gradeId: g5.id, subject: "Matemática", section: "Única"};
+      var gr6 = {id: uid(), gradeId: g6.id, subject: "Matemática", section: "Única"};
+      state.groups = [gr1A, gr3, gr4, gr5, gr6];
+
+      var students1roA = [
+        "Caba De La Cruz Kender", "Castillo Medina Helen", "Charles Jayden", 
+        "Dilone Bernard Odreily", "Eguren Cabrera Zooey", "Gutiérrez Felipe José Rodolfo", 
+        "Guzmán Andy Miguel", "Hurtado Polanco Aleiny Ideana", "Liriano Sánchez Ángel Francisco", 
+        "Maria Vega Dilson Javier", "Marte Polanco Yaweyni", "Matías Martínez Raymel Michael", 
+        "Olivares Ventura Scarlette", "Ovalles León Chailine Faviola", "Pérez Reyes Génesis", 
+        "Rodríguez Collado Elías David", "Rodríguez Inoa Jean Carlos", "Rosario Yeison", 
+        "Santana Taveras Nahiony Esther", "Tavares Morales Jhon Daivy", "Villanueva Mejía Diego"
+      ];
+      students1roA.forEach(function(name){ state.students.push({id: uid(), groupId: gr1A.id, name: name}); });
+
+      var students3ro = [
+        "Abreu Rivas Xander", "Almonte García Camille Zoe", "Batista Jaycob Thomas", 
+        "Batista Acosta Stewal Alexander", "Beato Hernández Mathews Alexander", "Benoit Jean Jodie", 
+        "Delgado De Jesus Luis Adolfo", "Díaz Hernández Reyshel Daniela", "Dossous Steeve Jude", 
+        "Doulvy Velásquez Yasmell", "Edouard Binette Marc", "Esperance Nathanael", 
+        "Estévez Báez Karolyn María", "Estévez Parra Luis Ángel", "Ferreira González Winyer", 
+        "Flete Paulino Skany Marianet", "Francisco Tejada Julio José", "Gauthier Fabienne Leonne", 
+        "Hernández Sánchez Daryell", "López Almonte Ciara", "Núñez Matista Gabriel", 
+        "Peña Ovalles Ismael", "Rodríguez Rodríguez Isaac De Jesús", "St-Fort Kihanna Lindsay", "Paul Woodle"
+      ];
+      students3ro.forEach(function(name){ state.students.push({id: uid(), groupId: gr3.id, name: name}); });
+
+      var students4to = [
+        "Abreu François José David", "Almonte Cerda Briandy", "Antenor Paul Alondra", "Aquino Estévez Joshua",
+        "Beltre Liriano Nashaly", "Betances Espinal Frankyell", "Jerez Polanco Camila Massiel", "Cerda Balbuena Ashley Noelia",
+        "Domínguez Gurinis Daniela Cristina", "Fadul Balbuena Elías José", "Fermín Ramírez Dangel Emmanuel", "Infante Yorsander",
+        "Martínez Cabrera Esterlina", "Marte Hernández Dilan De Jesús", "Martínez Rodríguez Andrews Enmanuel", "Martínez Ramírez Raffniel",
+        "Martínez Rodríguez Darwin De Jesús", "Marte Valdez Christopher", "Núñez Peralta Gloriannet", "Ortega Jorge Danie",
+        "Paredes Parra Jerison", "Rodríguez José Abel", "Roa Peralta Merelin", "Rodríguez Roman Abrahan Isaac",
+        "Rodríguez Then Libaneri", "Rosario Reyes Oswaldo Junior", "Santana Reyes Arismendy", "Santos López Yokairy",
+        "Sosa Martínez Joelky Abraham", "Tavera Guzmán, Jhoan Alejandro", "Telfort Renaldo", "Tony Rose Emeline",
+        "Ulloa Rodriguez Aneudy Miguel", "Zegue Woodjina", "Joseph Myriame Shadly", "González González Lixander Andres"
+      ];
+      students4to.forEach(function(name){ state.students.push({id: uid(), groupId: gr4.id, name: name}); });
+
+      var students5to = [
+        "Abreu Osoria Franyelina", "Abreu Tineo Luis Andres", "Almonte Vargas Perla Massiel", "Cerda Guzmán Darixon",
+        "Corona Rosario Yarelin Linet", "De La Cruz Sánchez Brasleidy", "Cruz Tejada Fabián Josué", "Hernández Vargas Emmanuel De Jesús",
+        "Hernandez Mota Daniel Emil", "De La Cruz Ramírez Edelin", "De León Silfa Perla Jasmin", "Díaz Hernández Dafne Shaday",
+        "Díaz Martínez Bayholett Balviny", "Dossous Djenive Neika", "Dupplessy Kleyry Marvens", "Flete Paulino Jerniel Jose",
+        "Hernández Sánchez Delmarlin Maciel", "Torres Tejada Jean Franko Jose", "Larson Marvens", "Valerio Odrys",
+        "Mejía Amarante Marianny", "Núñez Santiago Louise Marianne", "Ortega López Cristofer", "Peña Marte Hasan Amado",
+        "Rodríguez Grullón Elvis Samuel", "Rodríguez Morel Jatnna", "Robles Peralta Jorge Andrés", "Rosario Ventura Jony Efrail",
+        "Saimpy Julie Bernita", "Rodríguez Guzmán Keddelyn Justin"
+      ];
+      students5to.forEach(function(name){ state.students.push({id: uid(), groupId: gr5.id, name: name}); });
+
+      var students6to = [
+        "Aquino Estévez John Maicoll", "Aracena Santana Luis Angel", "Balboa Felipe Leah Kamil", 
+        "Cerda Guzmán Ariel Yunior", "Contreras Hernández Franchescha", "Mercedes Domínguez Jodiel", 
+        "Dupplessy Hurley Marlaune", "Espinal González, Amalia", "Gil Cepeda Hilari", 
+        "Gómez Díaz Raykell Janel", "Gonzáles Castillo José Sebastián", "González Gutiérrez Lyha Stephanie", 
+        "Guzmán Vásquez Emely María", "Grullón, Brianna Marcelis", "Landeta Ramírez Pamela María", 
+        "Lantigua Montesino Josue Ivanoy", "Laroche Nelta", "Liriano Méndez Génesis Aisha", 
+        "Lora Toribio Yensy Yariel", "Louis Cassiana Murela", "Martínez Cordero Ulises", 
+        "Martínez Rodríguez Yarleny Alt.", "Mendoza Medina José Isaac", "Napoleón Marie Gislene", 
+        "Páez Torres David D Jesus", "Rodríguez Morel Jhon", "Rodríguez Ulloa Denisse Isabel", 
+        "Romano Llano Grismeylis", "St Rome Peer Luigi", "Ramos Santana Ismael"
+      ];
+      students6to.forEach(function(name){ state.students.push({id: uid(), groupId: gr6.id, name: name}); });
+
+      state.selectedGroup = gr1A.id;
+      save();
+    }
+
     function load(){
       storageGet().then(function(res){
         if(res && res.value){
@@ -177,9 +261,14 @@
             state.attendance=Array.isArray(state.attendance)?state.attendance:[];
           }catch(e){}
         }
-        if(!state.selectedGroup || !state.groups.some(function(g){return g.id===state.selectedGroup;})) state.selectedGroup = null;
+        if(state.grades.length === 0){
+          seedInitialData();
+        }
+        if(!state.selectedGroup || !state.groups.some(function(g){return g.id===state.selectedGroup;})){
+          state.selectedGroup = state.groups.length ? state.groups[0].id : null;
+        }
         render();
-      }).catch(function(){ render(); });
+      }).catch(function(){ seedInitialData(); render(); });
     }
 
     function showUndo(msg, undoCallback){
@@ -258,7 +347,6 @@
     }
 
     function el(html){var t=document.createElement("template");t.innerHTML=html.trim();return t.content.firstChild;}
-
     function render(){
       var app = document.getElementById("app");
       app.innerHTML = "";
@@ -294,7 +382,6 @@
       }
     }
 
-    // CALENDARIO REAL MINERD
     function renderHomeDashboard(){
       var wrap = el('<div></div>');
       var totalStudents = state.students.length;
@@ -393,7 +480,6 @@
 
       var actions = el('<div class="top-actions"></div>');
       
-      // BOTÓN DE IMPRESIÓN CON SELECTOR
       var printBtn = el('<button class="btn">🖨️ Imprimir / PDF</button>');
       printBtn.addEventListener("click", function(){ openPrintSelectorModal(); });
       actions.appendChild(printBtn);
@@ -541,7 +627,6 @@
       return wrap;
     }
 
-    // PUNTOS Y FALTAS SIN DESPLEGABLE DE ALUMNOS (LISTADO DIRECTO)
     function renderPuntos(){
       var wrap = el('<div></div>');
       wrap.appendChild(el('<div class="panel-head"><h2>Registro Rápido de Puntos y Faltas</h2></div>'));
@@ -551,7 +636,6 @@
         return wrap;
       }
 
-      // Selector global de razón para aplicar con un clic a cualquier alumno
       var controlBox = el(
         '<div style="background:#fff; padding:16px; border-radius:12px; box-shadow:var(--shadow-soft); margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">'+
           '<div style="flex:1; min-width:260px;">'+
@@ -576,7 +660,7 @@
               '<option value="OTRO">Otro (escribir motivo)...</option>'+
             '</select>'+
           '</div>'+
-          '<div style="flex:1; min-width:200px;" id="customReasonWrap" style="display:none;">'+
+          '<div style="flex:1; min-width:200px;" id="customReasonWrap">'+
             '<label class="field-label" style="margin-top:0;">Especifique motivo:</label>'+
             '<input type="text" id="globalCustomReason" placeholder="Motivo personalizado...">'+
           '</div>'+
@@ -591,7 +675,6 @@
       });
       wrap.appendChild(controlBox);
 
-      // Tabla directa de estudiantes con botones de mérito y falta
       var tableWrap = el('<div class="table-wrap"></div>');
       var table = el('<table><thead><tr><th>Estudiante</th><th style="text-align:right;">Acciones Rápidas (Méritos / Faltas)</th></tr></thead></table>');
       var tbody = document.createElement("tbody");
@@ -621,7 +704,6 @@
 
       table.appendChild(tbody); tableWrap.appendChild(table); wrap.appendChild(tableWrap);
 
-      // Historial reciente de incidencias abajo
       wrap.appendChild(el('<h3 style="font-family:Lora,serif; margin-top:24px;">Historial de Incidencias en este Grupo</h3>'));
       var histWrap = el('<div class="table-wrap"></div>');
       var histTable = el('<table><thead><tr><th>Fecha / Hora</th><th>Estudiante</th><th>Motivo / Razón</th><th class="num">Impacto</th></tr></thead></table>');
@@ -698,7 +780,7 @@
 
     function openPrintSelectorModal(){
       var backdrop = el('<div class="modal-backdrop"></div>');
-      var modal = el('<div class="modal"><h3>Seleccionar formato de impresión</h3><p class="hint">Elija qué documento oficial desea generar en papel o PDF.</p><div style="display:flex; flex-direction:column; gap:10px; margin-top:15px;"><button class="btn btn-primary" id="printListBtn">🖨️ Imprimir Lista de Estudiantes</button><button class="btn btn-primary" id="printReportBtn">🖨️ Imprimir Reportes e Incidencias (con Día y Hora)</button></div><div class="modal-actions"><button class="btn" id="cancelPrint">Cancelar</button></div></div>');
+      var modal = el('<div class="modal"><h3>Seleccionar formato de impresión</h3><p class="hint">Elija qué documento oficial desea generar en papel o PDF.</p><div style="display:flex; flex-direction:column; gap:10px; margin-top:15px;"><button class="btn btn-primary" id="printListBtn">🖨️ Imprimir Lista de Estudiantes</button><button class="btn btn-primary" id="printReportBtn">🖨️ Imprimir Reportes e Incidencias (con Día, Hora y Estudiante)</button></div><div class="modal-actions"><button class="btn" id="cancelPrint">Cancelar</button></div></div>');
       backdrop.appendChild(modal); document.body.appendChild(backdrop);
 
       modal.querySelector("#cancelPrint").addEventListener("click", function(){ document.body.removeChild(backdrop); });
@@ -726,18 +808,18 @@
       }
 
       var html = '<h2 style="font-family:Lora,serif; margin-bottom:5px;">Grammateus - Reporte Oficial MINERD</h2>'+
-                 '<p style="margin:0 0 15px 0; font-size:13px; color:#555;">Docente: '+escapeHtml(state.userName)+' | Grado: '+escapeHtml(grade?grade.name:"General")+' | Asignatura: '+escapeHtml(groupLabel(group))+' | Fecha de emisión: '+todayISO()+' '+nowTimeStr()+'</p>';
+                 '<p style="margin:0 0 15px 0; font-size:13px; color:#555;">Docente: '+escapeHtml(state.userName)+' | Grado: '+escapeHtml(grade?grade.name:"General")+' | Asignatura: '+escapeHtml(groupLabel(group))+' | Emisión: '+todayISO()+' '+nowTimeStr()+'</p>';
 
       if(type === 'list'){
         html += '<h3 style="border-bottom:2px solid #000; padding-bottom:4px;">Lista Oficial de Estudiantes</h3>'+
                 '<table style="width:100%; border-collapse:collapse; margin-top:10px;">'+
-                '<thead><tr style="background:#eee;"><th style="border:1px solid #000; padding:8px;">No.</th><th style="border:1px solid #000; padding:8px;">Nombre del Estudiante</th><th style="border:1px solid #000; padding:8px;">Asistencia / Observaciones</th></tr></thead><tbody>';
+                '<thead><tr style="background:#eee;"><th style="border:1px solid #000; padding:8px;">No.</th><th style="border:1px solid #000; padding:8px;">Nombre del Estudiante</th><th style="border:1px solid #000; padding:8px;">Observaciones</th></tr></thead><tbody>';
         students.forEach(function(s, idx){
           html += '<tr><td style="border:1px solid #000; padding:8px; width:50px;">'+(idx+1)+'</td><td style="border:1px solid #000; padding:8px;"><strong>'+escapeHtml(s.name)+'</strong></td><td style="border:1px solid #000; padding:8px;"></td></tr>';
         });
         html += '</tbody></table>';
       } else {
-        html += '<h3 style="border-bottom:2px solid #000; padding-bottom:4px;">Reporte Detallado de Incidencias y Conducta</h3>'+
+        html += '<h3 style="border-bottom:2px solid #000; padding-bottom:4px;">Reporte Detallado de Incidencias (Con Día, Hora y Estudiante)</h3>'+
                 '<table style="width:100%; border-collapse:collapse; margin-top:10px;">'+
                 '<thead><tr style="background:#eee;"><th style="border:1px solid #000; padding:8px;">Día y Hora</th><th style="border:1px solid #000; padding:8px;">Estudiante</th><th style="border:1px solid #000; padding:8px;">Incidencia / Motivo</th><th style="border:1px solid #000; padding:8px; text-align:right;">Impacto</th></tr></thead><tbody>';
         
