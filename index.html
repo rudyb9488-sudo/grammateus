@@ -32,6 +32,7 @@
   .btn-danger{background:var(--red)!important;color:#fff!important;}
   .btn-ghost{background:transparent!important;box-shadow:none!important;}
   .btn-sm{padding:5px 10px;font-size:12px;}
+  
   .profile-wrap{position:relative;}
   .profile-btn{display:flex;align-items:center;gap:8px;background:#fff;color:var(--ink);}
   .avatar{width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;}
@@ -42,8 +43,8 @@
   .profile-menu button:hover{background:var(--paper-dim);}
 
   .layout{display:grid;grid-template-columns:270px minmax(0,1fr);gap:0;min-height:calc(100vh - 70px);}
-  .tree-panel{position:sticky;top:70px;align-self:start;height:calc(100vh - 70px);overflow:auto;background:var(--sidebar);padding:24px 16px 40px;}
-  .tree-head{padding:0 8px 10px;margin-bottom:8px;}
+  .tree-panel{position:sticky;top:70px;align-self:start;height:calc(100vh - 70px);overflow:auto;background:#F3EFE5;padding:24px 16px 40px;border-right:1px solid var(--line);}
+  .tree-head{padding:0 8px 10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
   .tree-head h3{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.08em;margin:0;color:var(--ink-soft);text-transform:uppercase;}
   .grade-block{border:0;border-radius:10px;background:#fff;box-shadow:var(--shadow-soft);margin-bottom:10px;overflow:hidden;}
   .grade-row{background:transparent;padding:11px 10px;display:flex;align-items:center;gap:6px;}
@@ -60,7 +61,7 @@
   .main-content{min-width:0;padding:28px 34px 70px;max-width:1250px;width:100%;margin:0 auto;}
   .tabs-row{display:flex;gap:3px;border-bottom:1px solid #e5dfd0;margin-bottom:24px;overflow-x:auto;}
   .tabs-row button{border-radius:0;background:transparent;border:none;border-bottom:3px solid transparent;padding:11px 12px;font-size:14.5px;font-weight:600;color:var(--ink-soft);white-space:nowrap;}
-  .tabs-row button.active{color:var(--ink;border-bottom-color:var(--green);}
+  .tabs-row button.active{color:var(--ink);border-bottom-color:var(--green);}
   .panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
   .panel-head h2{font-family:'Lora',serif;margin:0;font-size:22px;}
   .inline-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end;}
@@ -86,7 +87,6 @@
   .minerd-list li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
   .minerd-list li span:last-child{color:var(--ink-soft);font-size:12px;}
 
-  /* NOTIFICACIÓN FLOTANTE DE DESHACER (UNDO) */
   #undoToast {
     position: fixed; bottom: 20px; right: 20px; background: #22291D; color: #fff;
     padding: 12px 20px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
@@ -135,13 +135,13 @@
 
 <script>
   function initApp() {
-    var STORAGE_KEY = "grammateus-data-v4";
+    var STORAGE_KEY = "grammateus-data-v6";
     var state = {
       grades: [], groups: [], students: [], points: [], attendance: [],
       selectedGroup: null, collapsedGrades: {}, activeTab: "estudiantes", attendanceDate: todayISO()
     };
 
-    var lastAction = null; // Para la función de Deshacer (Undo)
+    var lastAction = null;
 
     function todayISO(){var d=new Date(),m=(d.getMonth()+1+"").padStart(2,"0"),day=(d.getDate()+"").padStart(2,"0");return d.getFullYear()+"-"+m+"-"+day;}
     function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
@@ -343,7 +343,6 @@
 
       var actions = el('<div class="top-actions"></div>');
       
-      // BOTÓN DE IMPRESIÓN / PDF
       var printBtn = el('<button class="btn" onclick="window.print()">🖨️ Imprimir / PDF</button>');
       actions.appendChild(printBtn);
 
@@ -368,11 +367,17 @@
 
     function renderTree(){
       var panel = el('<div class="tree-panel"></div>');
-      panel.appendChild(el('<div class="tree-head"><h3>Grados</h3></div>'));
+      var headRow = el('<div class="tree-head"><h3>Grados</h3></div>');
+      var treeAddBtn = el('<button class="btn btn-primary btn-sm" style="padding:2px 8px;">+ Grado</button>');
+      treeAddBtn.addEventListener("click", function(){ openGradeModal(); });
+      headRow.appendChild(treeAddBtn);
+      panel.appendChild(headRow);
+
       if(!state.grades.length){
-        panel.appendChild(el('<div style="padding:10px;font-size:13px;color:var(--ink-soft);">Sin grados</div>'));
+        panel.appendChild(el('<div style="padding:10px;font-size:13px;color:var(--ink-soft);">Sin grados creados</div>'));
         return panel;
       }
+
       state.grades.forEach(function(grade){
         var block = el('<div class="grade-block"></div>');
         var collapsed = !!state.collapsedGrades[grade.id];
@@ -428,7 +433,6 @@
       students.forEach(function(s){
         var tr=el('<tr><td><strong style="cursor:pointer;color:var(--green);" class="st-link">'+escapeHtml(s.name)+'</strong></td><td style="text-align:right;"></td></tr>');
         
-        // Al hacer clic en el nombre se abre la ficha individual cronológica
         tr.querySelector(".st-link").addEventListener("click", function(){ openStudentProfileModal(s); });
 
         var delBtn=el('<button class="btn btn-ghost btn-sm" style="color:var(--red);">Eliminar</button>');
@@ -439,11 +443,10 @@
       return wrap;
     }
 
-    // PESTAÑA DE ASISTENCIA CON CALENDARIO HISTÓRICO
     function renderAsistencia(){
       var wrap = el('<div></div>');
       var students = currentStudents();
-      var head = el('<div class="panel-head"><h2>Control de Asistencia</h2><div class="inline-form"><label style="font-size:13px;color:var(--ink-soft);">Fecha a registrar/revisar:</label><input type="date" id="attDate" value="'+state.attendanceDate+'"></div></div>');
+      var head = el('<div class="panel-head"><h2>Control de Asistencia</h2><div class="inline-form"><label style="font-size:13px;color:var(--ink-soft);">Fecha:</label><input type="date" id="attDate" value="'+state.attendanceDate+'"></div></div>');
       wrap.appendChild(head);
 
       head.querySelector("#attDate").addEventListener("change", function(e){
@@ -622,7 +625,6 @@
       return wrap;
     }
 
-    // MODAL DE FICHA INDIVIDUAL CRONOLÓGICA DEL ESTUDIANTE
     function openStudentProfileModal(student){
       var backdrop = el('<div class="modal-backdrop"></div>');
       var sPoints = state.points.filter(function(p){return p.studentId===student.id;}).sort(function(a,b){return b.date.localeCompare(a.date);});
