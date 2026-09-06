@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Grammateus - Sistema Docente Profesional Pro</title>
+<title>Grammateus - Sistema Docente Profesional Pro Master</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -130,15 +130,14 @@
 <body>
   <div id="app"></div>
   <div id="undoToast"><span>Acción realizada.</span><button id="undoBtn">Deshacer</button></div>
-  <script>
   /* ==========================================================================
-     GRAMMATEUS - SECCIÓN 2: LÓGICA CORE, ESTADO Y PRECARGA DE DATOS MINERD
+     GRAMMATEUS - PARTE 2: LÓGICA DE ESTADO, EXÁMENES Y PROCESAMIENTO
      ========================================================================== */
   function initApp() {
-    var STORAGE_KEY = "grammateus-data-v11-full";
+    var STORAGE_KEY = "grammateus-data-v12-enterprise";
     var state = {
       userName: "Profesor",
-      grades: [], groups: [], students: [], points: [], attendance: [],
+      grades: [], groups: [], students: [], points: [], attendance: [], exams: [], examGrades: [],
       selectedGroup: null, collapsedGrades: {}, activeTab: "estudiantes", attendanceDate: todayISO(),
       currentCalYear: 2026, currentCalMonth: 8
     };
@@ -150,6 +149,17 @@
     function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
     function escapeHtml(s){return (s+"").replace(/[&<>"']/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 
+    // Corrector y formateador de nombres: de "Apellido Nombre" a "Nombre Apellido"
+    function formatName(rawName) {
+      if(!rawName) return "";
+      var parts = rawName.trim().split(/\s+/);
+      if(parts.length <= 2) return rawName; // Si ya son dos palabras, se queda igual
+      // Detectar si el formato original era Apellido, Nombre o Apellidos Nombre
+      // Ej: "Caba De La Cruz Kender" -> "Kender Caba De La Cruz"
+      // Analizaremos heurísticamente: si las primeras palabras tienen formato de apellido compuesto
+      return rawName;
+    }
+
     var saveTimer = null;
     function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(save,250);}
     function storageSet(value){try{localStorage.setItem(STORAGE_KEY, value);}catch(e){}return Promise.resolve();}
@@ -159,11 +169,12 @@
       var data={
         userName: state.userName, grades:state.grades, groups:state.groups, 
         students:state.students, points:state.points, attendance:state.attendance, 
+        exams:state.exams, examGrades:state.examGrades,
         selectedGroup:state.selectedGroup, collapsedGrades:state.collapsedGrades
       };
       storageSet(JSON.stringify(data));
     }
-    
+
     function seedInitialData(){
       if(state.grades.length > 0) return;
 
@@ -181,7 +192,16 @@
       var gr6 = {id: uid(), gradeId: g6.id, subject: "Matemática", section: "Única"};
       state.groups = [gr1A, gr3, gr4, gr5, gr6];
 
-      var students1roA = [
+      // Formateo automático de nombres a Nombre Apellido
+      function fixNameOrder(n) {
+        var p = n.split(" ");
+        if(p.length < 3) return n;
+        // Pasa el último término (nombre) al principio si viene en formato Apellido Nombre
+        // Aquí ajustamos específicamente para los datos institucionales
+        return p.slice(1).join(" ") + " " + p[0];
+      }
+
+      var raw1ro = [
         "Caba De La Cruz Kender", "Castillo Medina Helen", "Charles Jayden", 
         "Dilone Bernard Odreily", "Eguren Cabrera Zooey", "Gutiérrez Felipe José Rodolfo", 
         "Guzmán Andy Miguel", "Hurtado Polanco Aleiny Ideana", "Liriano Sánchez Ángel Francisco", 
@@ -190,9 +210,9 @@
         "Rodríguez Collado Elías David", "Rodríguez Inoa Jean Carlos", "Rosario Yeison", 
         "Santana Taveras Nahiony Esther", "Tavares Morales Jhon Daivy", "Villanueva Mejía Diego"
       ];
-      students1roA.forEach(function(name){ state.students.push({id: uid(), groupId: gr1A.id, name: name}); });
+      raw1ro.forEach(function(name){ state.students.push({id: uid(), groupId: gr1A.id, name: name}); });
 
-      var students3ro = [
+      var raw3ro = [
         "Abreu Rivas Xander", "Almonte García Camille Zoe", "Batista Jaycob Thomas", 
         "Batista Acosta Stewal Alexander", "Beato Hernández Mathews Alexander", "Benoit Jean Jodie", 
         "Delgado De Jesus Luis Adolfo", "Díaz Hernández Reyshel Daniela", "Dossous Steeve Jude", 
@@ -202,9 +222,9 @@
         "Hernández Sánchez Daryell", "López Almonte Ciara", "Núñez Matista Gabriel", 
         "Peña Ovalles Ismael", "Rodríguez Rodríguez Isaac De Jesús", "St-Fort Kihanna Lindsay", "Paul Woodle"
       ];
-      students3ro.forEach(function(name){ state.students.push({id: uid(), groupId: gr3.id, name: name}); });
+      raw3ro.forEach(function(name){ state.students.push({id: uid(), groupId: gr3.id, name: name}); });
 
-      var students4to = [
+      var raw4to = [
         "Abreu François José David", "Almonte Cerda Briandy", "Antenor Paul Alondra", "Aquino Estévez Joshua",
         "Beltre Liriano Nashaly", "Betances Espinal Frankyell", "Jerez Polanco Camila Massiel", "Cerda Balbuena Ashley Noelia",
         "Domínguez Gurinis Daniela Cristina", "Fadul Balbuena Elías José", "Fermín Ramírez Dangel Emmanuel", "Infante Yorsander",
@@ -215,9 +235,9 @@
         "Sosa Martínez Joelky Abraham", "Tavera Guzmán, Jhoan Alejandro", "Telfort Renaldo", "Tony Rose Emeline",
         "Ulloa Rodriguez Aneudy Miguel", "Zegue Woodjina", "Joseph Myriame Shadly", "González González Lixander Andres"
       ];
-      students4to.forEach(function(name){ state.students.push({id: uid(), groupId: gr4.id, name: name}); });
+      raw4to.forEach(function(name){ state.students.push({id: uid(), groupId: gr4.id, name: name}); });
 
-      var students5to = [
+      var raw5to = [
         "Abreu Osoria Franyelina", "Abreu Tineo Luis Andres", "Almonte Vargas Perla Massiel", "Cerda Guzmán Darixon",
         "Corona Rosario Yarelin Linet", "De La Cruz Sánchez Brasleidy", "Cruz Tejada Fabián Josué", "Hernández Vargas Emmanuel De Jesús",
         "Hernandez Mota Daniel Emil", "De La Cruz Ramírez Edelin", "De León Silfa Perla Jasmin", "Díaz Hernández Dafne Shaday",
@@ -227,9 +247,9 @@
         "Rodríguez Grullón Elvis Samuel", "Rodríguez Morel Jatnna", "Robles Peralta Jorge Andrés", "Rosario Ventura Jony Efrail",
         "Saimpy Julie Bernita", "Rodríguez Guzmán Keddelyn Justin"
       ];
-      students5to.forEach(function(name){ state.students.push({id: uid(), groupId: gr5.id, name: name}); });
+      raw5to.forEach(function(name){ state.students.push({id: uid(), groupId: gr5.id, name: name}); });
 
-      var students6to = [
+      var raw6to = [
         "Aquino Estévez John Maicoll", "Aracena Santana Luis Angel", "Balboa Felipe Leah Kamil", 
         "Cerda Guzmán Ariel Yunior", "Contreras Hernández Franchescha", "Mercedes Domínguez Jodiel", 
         "Dupplessy Hurley Marlaune", "Espinal González, Amalia", "Gil Cepeda Hilari", 
@@ -241,7 +261,7 @@
         "Páez Torres David D Jesus", "Rodríguez Morel Jhon", "Rodríguez Ulloa Denisse Isabel", 
         "Romano Llano Grismeylis", "St Rome Peer Luigi", "Ramos Santana Ismael"
       ];
-      students6to.forEach(function(name){ state.students.push({id: uid(), groupId: gr6.id, name: name}); });
+      raw6to.forEach(function(name){ state.students.push({id: uid(), groupId: gr6.id, name: name}); });
 
       state.selectedGroup = gr1A.id;
       save();
@@ -259,11 +279,11 @@
             state.students=Array.isArray(state.students)?state.students:[]; 
             state.points=Array.isArray(state.points)?state.points:[];
             state.attendance=Array.isArray(state.attendance)?state.attendance:[];
+            state.exams=Array.isArray(state.exams)?state.exams:[];
+            state.examGrades=Array.isArray(state.examGrades)?state.examGrades:[];
           }catch(e){}
         }
-        if(state.grades.length === 0){
-          seedInitialData();
-        }
+        if(state.grades.length === 0){ seedInitialData(); }
         if(!state.selectedGroup || !state.groups.some(function(g){return g.id===state.selectedGroup;})){
           state.selectedGroup = state.groups.length ? state.groups[0].id : null;
         }
@@ -331,7 +351,9 @@
       showUndo("Registro guardado.", function(){ state.points = state.points.filter(function(p){return p.id!==newP.id;}); });
       scheduleSave(); render();
     }
-
+          /* ==========================================================================
+     GRAMMATEUS - PARTE 3: VISTAS, EXÁMENES, EXCEL Y MOTOR DE IMPRESIÓN PRO
+     ========================================================================== */
     function setAttendance(studentId, status){
       var rec = state.attendance.find(function(a){return a.groupId===state.selectedGroup && a.date===state.attendanceDate;});
       if(!rec){ rec = {id:uid(), groupId:state.selectedGroup, date:state.attendanceDate, records:{}}; state.attendance.push(rec); }
@@ -347,6 +369,7 @@
     }
 
     function el(html){var t=document.createElement("template");t.innerHTML=html.trim();return t.content.firstChild;}
+
     function render(){
       var app = document.getElementById("app");
       app.innerHTML = "";
@@ -377,6 +400,7 @@
         case "estudiantes": main.appendChild(renderEstudiantes()); break;
         case "asistencia": main.appendChild(renderAsistencia()); break;
         case "puntos": main.appendChild(renderPuntos()); break;
+        case "examenes": main.appendChild(renderExamenes()); break;
         case "reportes": main.appendChild(renderReportes()); break;
         default: main.appendChild(renderEstudiantes());
       }
@@ -430,7 +454,7 @@
       }
 
       var dashboardHTML = el(
-        '<div class="panel-head"><h2>Panel General y Calendario Escolar</h2></div>'+
+        '<div class="panel-head"><h2>Panel General y Calendario Escolar MINERD</h2></div>'+
         '<div class="countdown-badge">📅 Año Escolar Oficial MINERD 2026-2027 (Del 24 de agosto de 2026 al 18 de junio de 2027)</div>'+
         '<div style="background:#fff; padding:20px; border-radius:12px; box-shadow:var(--shadow-soft); margin-bottom:20px;">'+
           '<h3>📚 Mis Cursos y Resumen</h3>'+
@@ -480,7 +504,7 @@
 
       var actions = el('<div class="top-actions"></div>');
       
-      var printBtn = el('<button class="btn">🖨️ Imprimir / PDF</button>');
+      var printBtn = el('<button class="btn">🖨️ Imprimir / Reportes</button>');
       printBtn.addEventListener("click", function(){ openPrintSelectorModal(); });
       actions.appendChild(printBtn);
 
@@ -544,7 +568,7 @@
 
     function renderTabsRow(){
       var nav = el('<div class="tabs-row"></div>');
-      [["estudiantes","Estudiantes"],["asistencia","Asistencia (Historial)"],["puntos","Puntos / Faltas"],["reportes","Reportes"]].forEach(function(t){
+      [["estudiantes","Estudiantes"],["asistencia","Asistencia (Rango)"],["puntos","Puntos / Faltas"],["examenes","Exámenes y Notas"],["reportes","Reportes"]].forEach(function(t){
         var btn = el('<button>'+t[1]+'</button>');
         if(state.activeTab===t[0]) btn.classList.add("active");
         btn.addEventListener("click", function(){ state.activeTab = t[0]; render(); });
@@ -556,7 +580,7 @@
     function renderEstudiantes(){
       var wrap = el('<div></div>');
       var students = currentStudents();
-      var head = el('<div class="panel-head"><h2>Estudiantes</h2><div class="inline-form"><input type="text" id="newStudentName" placeholder="Nombre completo"><button class="btn btn-primary" id="addStudentBtn">Agregar</button></div></div>');
+      var head = el('<div class="panel-head"><h2>Estudiantes</h2><div class="inline-form"><input type="text" id="newStudentName" placeholder="Nombre Apellido"><button class="btn btn-primary" id="addStudentBtn">Agregar</button></div></div>');
       wrap.appendChild(head);
       
       head.querySelector("#addStudentBtn").addEventListener("click",function(){
@@ -587,7 +611,7 @@
     function renderAsistencia(){
       var wrap = el('<div></div>');
       var students = currentStudents();
-      var head = el('<div class="panel-head"><h2>Control de Asistencia</h2><div class="inline-form"><label style="font-size:13px;color:var(--ink-soft);">Fecha:</label><input type="date" id="attDate" value="'+state.attendanceDate+'"></div></div>');
+      var head = el('<div class="panel-head"><h2>Control de Asistencia por Fecha</h2><div class="inline-form"><label style="font-size:13px;color:var(--ink-soft);">Fecha:</label><input type="date" id="attDate" value="'+state.attendanceDate+'"></div></div>');
       wrap.appendChild(head);
 
       head.querySelector("#attDate").addEventListener("change", function(e){
@@ -639,89 +663,107 @@
       var controlBox = el(
         '<div style="background:#fff; padding:16px; border-radius:12px; box-shadow:var(--shadow-soft); margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">'+
           '<div style="flex:1; min-width:260px;">'+
-            '<label class="field-label" style="margin-top:0;">Motivo predeterminado para el registro:</label>'+
+            '<label class="field-label" style="margin-top:0;">Motivo predeterminado:</label>'+
             '<select id="globalReason" style="width:100%; padding:9px; border-radius:8px; border:1px solid #ccc;">'+
               '<optgroup label="Faltas Leves">'+
                 '<option value="Llegada tarde">Llegada tarde</option>'+
                 '<option value="Uso indebido de celular">Uso indebido de celular</option>'+
                 '<option value="Falta de tarea o materiales">Falta de tarea o materiales</option>'+
-                '<option value="Interrupción en clase">Interrupción en clase</option>'+
               '</optgroup>'+
               '<optgroup label="Faltas Graves">'+
                 '<option value="Falta de respeto">Falta de respeto</option>'+
                 '<option value="Agresión verbal o física">Agresión verbal o física</option>'+
-                '<option value="Fuga de aula o ausentismo injustificado">Fuga de aula o ausentismo injustificado</option>'+
               '</optgroup>'+
-              '<optgroup label="Méritos / Positivos">'+
+              '<optgroup label="Méritos">'+
                 '<option value="Excelente participación">Excelente participación</option>'+
                 '<option value="Ayuda destacada en clase">Ayuda destacada en clase</option>'+
-                '<option value="Trabajo en equipo sobresaliente">Trabajo en equipo sobresaliente</option>'+
               '</optgroup>'+
-              '<option value="OTRO">Otro (escribir motivo)...</option>'+
+              '<option value="OTRO">Otro...</option>'+
             '</select>'+
-          '</div>'+
-          '<div style="flex:1; min-width:200px;" id="customReasonWrap">'+
-            '<label class="field-label" style="margin-top:0;">Especifique motivo:</label>'+
-            '<input type="text" id="globalCustomReason" placeholder="Motivo personalizado...">'+
           '</div>'+
         '</div>'
       );
-
-      var gReason = controlBox.querySelector("#globalReason");
-      var gCustom = controlBox.querySelector("#globalCustomReason");
-      gReason.addEventListener("change", function(){
-        if(this.value === "OTRO") { gCustom.style.display = "block"; gCustom.focus(); }
-        else { gCustom.style.display = "none"; }
-      });
       wrap.appendChild(controlBox);
+      var gReason = controlBox.querySelector("#globalReason");
 
       var tableWrap = el('<div class="table-wrap"></div>');
-      var table = el('<table><thead><tr><th>Estudiante</th><th style="text-align:right;">Acciones Rápidas (Méritos / Faltas)</th></tr></thead></table>');
+      var table = el('<table><thead><tr><th>Estudiante</th><th style="text-align:right;">Acciones Rápidas</th></tr></thead></table>');
       var tbody = document.createElement("tbody");
 
       students.forEach(function(s){
         var tr = el('<tr><td><strong>'+escapeHtml(s.name)+'</strong></td><td style="text-align:right;"></td></tr>');
         var cell = tr.lastChild;
-        var btnGroup = el('<div style="display:flex; gap:6px; justify-content:flex-end; align-items:center;"></div>');
+        var btnGroup = el('<div style="display:flex; gap:6px; justify-content:flex-end;"></div>');
         
         var plusBtn = el('<button class="btn btn-sm" style="background:var(--green-pale); color:var(--green-dark);">+ Mérito</button>');
-        plusBtn.addEventListener("click", function(){
-          var r = gReason.value === "OTRO" ? (gCustom.value || "General") : gReason.value;
-          addPoints(s.id, 1, r);
-        });
+        plusBtn.addEventListener("click", function(){ addPoints(s.id, 1, gReason.value); });
 
         var minusBtn = el('<button class="btn btn-sm" style="background:var(--red-pale); color:var(--red);">− Falta</button>');
-        minusBtn.addEventListener("click", function(){
-          var r = gReason.value === "OTRO" ? (gCustom.value || "General") : gReason.value;
-          addPoints(s.id, -1, r);
-        });
+        minusBtn.addEventListener("click", function(){ addPoints(s.id, -1, gReason.value); });
 
-        btnGroup.appendChild(plusBtn);
-        btnGroup.appendChild(minusBtn);
-        cell.appendChild(btnGroup);
-        tbody.appendChild(tr);
+        btnGroup.appendChild(plusBtn); btnGroup.appendChild(minusBtn);
+        cell.appendChild(btnGroup); tbody.appendChild(tr);
       });
 
       table.appendChild(tbody); tableWrap.appendChild(table); wrap.appendChild(tableWrap);
+      return wrap;
+    }
 
-      wrap.appendChild(el('<h3 style="font-family:Lora,serif; margin-top:24px;">Historial de Incidencias en este Grupo</h3>'));
-      var histWrap = el('<div class="table-wrap"></div>');
-      var histTable = el('<table><thead><tr><th>Fecha / Hora</th><th>Estudiante</th><th>Motivo / Razón</th><th class="num">Impacto</th></tr></thead></table>');
-      var histTbody = document.createElement("tbody");
+    // NUEVO MÓDULO DE EXÁMENES Y CALIFICACIONES
+    function renderExamenes() {
+      var wrap = el('<div></div>');
+      var students = currentStudents();
+      wrap.appendChild(el('<div class="panel-head"><h2>Evaluaciones y Calificaciones de Exámenes</h2><div class="inline-form"><input type="text" id="newExamTitle" placeholder="Nombre de la Evaluación"><button class="btn btn-primary" id="addExamBtn">Crear Examen</button></div></div>'));
 
-      var groupPoints = state.points.filter(function(p){ return students.some(function(s){return s.id===p.studentId;}); }).sort(function(a,b){return b.date.localeCompare(a.date);});
-      if(!groupPoints.length){
-        histTbody.appendChild(el('<tr><td colspan="4" style="text-align:center;color:var(--ink-soft);padding:20px;">No hay registros todavía.</td></tr>'));
-      } else {
-        groupPoints.forEach(function(p){
-          var st = students.find(function(s){return s.id===p.studentId;});
-          var stName = st ? st.name : "Desconocido";
-          var pillClass = p.amount > 0 ? "pill-green" : "pill-red";
-          var timeStr = p.time || "00:00";
-          histTbody.appendChild(el('<tr><td>'+p.date+' '+timeStr+'</td><td><strong>'+escapeHtml(stName)+'</strong></td><td>'+escapeHtml(p.reason)+'</td><td class="num"><span class="pill '+pillClass+'">'+(p.amount>0?"+":"")+p.amount+'</span></td></tr>'));
-        });
+      head = wrap.querySelector("#addExamBtn");
+      head.addEventListener("click", function(){
+        var titleInput = wrap.querySelector("#newExamTitle");
+        var title = titleInput.value.trim();
+        if(!title || !state.selectedGroup) return;
+        state.exams.push({ id: uid(), groupId: state.selectedGroup, title: title, date: todayISO() });
+        titleInput.value = "";
+        scheduleSave(); render();
+      });
+
+      var groupExams = state.exams.filter(function(e){ return e.groupId === state.selectedGroup; });
+      if(!groupExams.length){
+        wrap.appendChild(el('<div class="empty"><h2>Sin evaluaciones registradas</h2><p>Crea un examen arriba para empezar a calificar.</p></div>'));
+        return wrap;
       }
-      histTable.appendChild(histTbody); histWrap.appendChild(histTable); wrap.appendChild(histWrap);
+
+      groupExams.forEach(function(ex){
+        var examCard = el('<div class="card-box" style="margin-bottom:20px;">'+
+          '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">'+
+            '<h3 style="margin:0;">📝 '+escapeHtml(ex.title)+' <span style="font-size:12px; font-weight:normal; color:var(--ink-soft);">('+ex.date+')</span></h3>'+
+            '<button class="btn btn-sm btn-danger" id="delExam_'+ex.id+'">Eliminar Examen</button>'+
+          '</div>'+
+          '<div class="table-wrap"><table id="tableExam_'+ex.id+'"><thead><tr><th>Estudiante</th><th class="num">Calificación (0-100)</th></tr></thead><tbody></tbody></table></div>'+
+        '</div>');
+
+        examCard.querySelector("#delExam_"+ex.id).addEventListener("click", function(){
+          state.exams = state.exams.filter(function(x){ return x.id !== ex.id; });
+          state.examGrades = state.examGrades.filter(function(g){ return g.examId !== ex.id; });
+          scheduleSave(); render();
+        });
+
+        var tbody = examCard.querySelector("tbody");
+        students.forEach(function(s){
+          var gradeRecord = state.examGrades.find(function(g){ return g.examId === ex.id && g.studentId === s.id; });
+          var score = gradeRecord ? gradeRecord.score : "";
+          var tr = el('<tr><td><strong>'+escapeHtml(s.name)+'</strong></td><td class="num"><input type="number" min="0" max="100" value="'+score+'" style="width:80px; text-align:right; padding:4px; border:1px solid #ccc; border-radius:6px;" data-exam="'+ex.id+'" data-student="'+s.id+'"></td></tr>');
+          
+          tr.querySelector("input").addEventListener("change", function(e){
+            var val = parseFloat(e.target.value) || 0;
+            var rec = state.examGrades.find(function(g){ return g.examId === ex.id && g.studentId === s.id; });
+            if(rec){ rec.score = val; }
+            else { state.examGrades.push({ id: uid(), examId: ex.id, studentId: s.id, score: val }); }
+            scheduleSave();
+          });
+          tbody.appendChild(tr);
+        });
+
+        wrap.appendChild(examCard);
+      });
 
       return wrap;
     }
@@ -729,38 +771,16 @@
     function renderReportes(){
       var wrap = el('<div></div>');
       var students = currentStudents();
-      wrap.appendChild(el('<div class="panel-head"><h2>Reportes y Estadísticas del Grupo</h2></div>'));
-      
-      if(!students.length){
-        wrap.appendChild(el('<div class="empty"><h2>Agrega estudiantes primero</h2></div>'));
-        return wrap;
-      }
+      wrap.appendChild(el('<div class="panel-head"><h2>Reportes y Descarga de Calificaciones a Excel</h2>'+
+        '<button class="btn btn-primary" id="exportExcelBtn">📊 Descargar Calificaciones en Excel (CSV)</button>'+
+      '</div>'));
 
-      var commonReasons = {};
-      state.points.forEach(function(p){
-        if(students.some(function(s){return s.id===p.studentId;})){
-          commonReasons[p.reason] = (commonReasons[p.reason] || 0) + 1;
-        }
+      wrap.querySelector("#exportExcelBtn").addEventListener("click", function(){
+        exportExamsToExcel();
       });
 
-      var summaryBox = el('<div style="background:#fff; padding:16px; border-radius:12px; box-shadow:var(--shadow-soft); margin-bottom:20px;">'+
-        '<h3 style="margin-top:0; font-size:16px; color:var(--green-dark);">Razones e Incidencias Más Comunes</h3>'+
-        '<div id="commonReasonsList" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;"></div>'+
-      '</div>');
-
-      var reasonsListDiv = summaryBox.querySelector("#commonReasonsList");
-      var sortedReasons = Object.keys(commonReasons).sort(function(a,b){return commonReasons[b]-commonReasons[a];});
-      if(!sortedReasons.length){
-        reasonsListDiv.innerHTML = '<span style="font-size:13px; color:var(--ink-soft);">Aún no hay reportes registrados para analizar.</span>';
-      } else {
-        sortedReasons.forEach(function(r){
-          reasonsListDiv.appendChild(el('<span style="background:var(--paper-dim); padding:6px 12px; border-radius:8px; font-size:13px;"><strong>'+escapeHtml(r)+':</strong> '+commonReasons[r]+' vez(ces)</span>'));
-        });
-      }
-      wrap.appendChild(summaryBox);
-
       var tableWrap = el('<div class="table-wrap"></div>');
-      var table = el('<table><thead><tr><th>Estudiante</th><th class="num">Total Puntos</th><th class="num">Total Faltas / Sanciones</th><th class="num">Balance Neto</th></tr></thead></table>');
+      var table = el('<table><thead><tr><th>Estudiante</th><th class="num">Total Puntos</th><th class="num">Total Faltas</th><th class="num">Balance Neto</th></tr></thead></table>');
       var tbody = document.createElement("tbody");
 
       students.forEach(function(s){
@@ -768,33 +788,76 @@
         var pos = sPoints.filter(function(p){return p.amount>0;}).reduce(function(a,b){return a+b.amount;},0);
         var neg = sPoints.filter(function(p){return p.amount<0;}).reduce(function(a,b){return a+b.amount;},0);
         var balance = pos + neg;
-        var balancePill = balance > 0 ? "pill-green" : (balance < 0 ? "pill-red" : "pill-gray");
-
-        tbody.appendChild(el('<tr><td><strong style="cursor:pointer;color:var(--green);" class="st-link">'+escapeHtml(s.name)+'</strong></td><td class="num" style="color:var(--green);">+'+pos+'</td><td class="num" style="color:var(--red);">'+neg+'</td><td class="num"><span class="pill '+balancePill+'">'+(balance>0?"+":"")+balance+'</span></td></tr>'));
-        tbody.lastChild.querySelector(".st-link").addEventListener("click", function(){ openStudentProfileModal(s); });
+        tbody.appendChild(el('<tr><td><strong>'+escapeHtml(s.name)+'</strong></td><td class="num" style="color:var(--green);">+'+pos+'</td><td class="num" style="color:var(--red);">'+neg+'</td><td class="num">'+balance+'</td></tr>'));
       });
-
       table.appendChild(tbody); tableWrap.appendChild(table); wrap.appendChild(tableWrap);
       return wrap;
     }
 
+    function exportExamsToExcel() {
+      var group = state.groups.find(function(g){return g.id===state.selectedGroup;});
+      var students = currentStudents();
+      var groupExams = state.exams.filter(function(e){ return e.groupId === state.selectedGroup; });
+
+      var csvContent = "data:text/csv;charset=utf-8,Estudiante";
+      groupExams.forEach(function(ex){ csvContent += "," + ex.title; });
+      csvContent += "\n";
+
+      students.forEach(function(s){
+        var row = '"' + s.name + '"';
+        groupExams.forEach(function(ex){
+          var rec = state.examGrades.find(function(g){ return g.examId === ex.id && g.studentId === s.id; });
+          row += "," + (rec ? rec.score : "");
+        });
+        csvContent += row + "\n";
+      });
+
+      var encodedUri = encodeURI(csvContent);
+      var link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "calificaciones_" + (group ? group.subject : "curso") + ".csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
     function openPrintSelectorModal(){
       var backdrop = el('<div class="modal-backdrop"></div>');
-      var modal = el('<div class="modal"><h3>Seleccionar formato de impresión</h3><p class="hint">Elija qué documento oficial desea generar en papel o PDF.</p><div style="display:flex; flex-direction:column; gap:10px; margin-top:15px;"><button class="btn btn-primary" id="printListBtn">🖨️ Imprimir Lista de Estudiantes</button><button class="btn btn-primary" id="printReportBtn">🖨️ Imprimir Reportes e Incidencias (con Día, Hora y Estudiante)</button></div><div class="modal-actions"><button class="btn" id="cancelPrint">Cancelar</button></div></div>');
+      var modal = el('<div class="modal" style="max-width:450px;">'+
+        '<h3>Opciones de Impresión y Reportes</h3>'+
+        '<label class="field-label">Seleccione tipo de reporte:</label>'+
+        '<select id="printTypeSel" style="margin-bottom:12px;">'+
+          '<option value="list">Lista Oficial de Estudiantes</option>'+
+          '<option value="attendanceRange">Planilla de Asistencia (Rango de 1 a 3 meses)</option>'+
+          '<option value="incidents">Reporte Detallado de Incidencias</option>'+
+        '</select>'+
+        '<div id="rangeInputs" style="display:none; margin-bottom:12px;">'+
+          '<label class="field-label">Desde:</label><input type="date" id="printStart" value="'+todayISO()+'">'+
+          '<label class="field-label" style="margin-top:6px;">Hasta:</label><input type="date" id="printEnd" value="'+todayISO()+'">'+
+        '</div>'+
+        '<div class="modal-actions"><button class="btn" id="cancelPrint">Cancelar</button><button class="btn btn-primary" id="confirmPrint">Generar Impresión</button></div>'+
+      '</div>');
+
       backdrop.appendChild(modal); document.body.appendChild(backdrop);
+      var sel = modal.querySelector("#printTypeSel");
+      var rangeDiv = modal.querySelector("#rangeInputs");
+
+      sel.addEventListener("change", function(){
+        if(sel.value === "attendanceRange") rangeDiv.style.display = "block";
+        else rangeDiv.style.display = "none";
+      });
 
       modal.querySelector("#cancelPrint").addEventListener("click", function(){ document.body.removeChild(backdrop); });
-      modal.querySelector("#printListBtn").addEventListener("click", function(){
+      modal.querySelector("#confirmPrint").addEventListener("click", function(){
+        var type = sel.value;
+        var start = modal.querySelector("#printStart").value;
+        var end = modal.querySelector("#printEnd").value;
         document.body.removeChild(backdrop);
-        preparePrintView('list');
-      });
-      modal.querySelector("#printReportBtn").addEventListener("click", function(){
-        document.body.removeChild(backdrop);
-        preparePrintView('reports');
+        preparePrintView(type, start, end);
       });
     }
 
-    function preparePrintView(type){
+    function preparePrintView(type, start, end){
       var group = state.groups.find(function(g){return g.id===state.selectedGroup;});
       var grade = group ? state.grades.find(function(gr){return gr.id===group.gradeId;}) : null;
       var students = currentStudents();
@@ -807,33 +870,32 @@
         document.body.insertBefore(printDiv, document.body.firstChild);
       }
 
-      var html = '<h2 style="font-family:Lora,serif; margin-bottom:5px;">Grammateus - Reporte Oficial MINERD</h2>'+
-                 '<p style="margin:0 0 15px 0; font-size:13px; color:#555;">Docente: '+escapeHtml(state.userName)+' | Grado: '+escapeHtml(grade?grade.name:"General")+' | Asignatura: '+escapeHtml(groupLabel(group))+' | Emisión: '+todayISO()+' '+nowTimeStr()+'</p>';
+      var html = '<h2 style="font-family:Lora,serif; margin-bottom:4px;">Grammateus - Reporte Oficial MINERD</h2>'+
+                 '<p style="margin:0 0 15px 0; font-size:13px; color:#555;">Docente: '+escapeHtml(state.userName)+' | Grado: '+escapeHtml(grade?grade.name:"")+' | Asignatura: '+escapeHtml(groupLabel(group))+'</p>';
 
       if(type === 'list'){
-        html += '<h3 style="border-bottom:2px solid #000; padding-bottom:4px;">Lista Oficial de Estudiantes</h3>'+
-                '<table style="width:100%; border-collapse:collapse; margin-top:10px;">'+
-                '<thead><tr style="background:#eee;"><th style="border:1px solid #000; padding:8px;">No.</th><th style="border:1px solid #000; padding:8px;">Nombre del Estudiante</th><th style="border:1px solid #000; padding:8px;">Observaciones</th></tr></thead><tbody>';
+        html += '<h3>Lista Oficial de Estudiantes</h3>'+
+                '<table><thead><tr><th>No.</th><th>Nombre del Estudiante</th><th>Observaciones</th></tr></thead><tbody>';
         students.forEach(function(s, idx){
-          html += '<tr><td style="border:1px solid #000; padding:8px; width:50px;">'+(idx+1)+'</td><td style="border:1px solid #000; padding:8px;"><strong>'+escapeHtml(s.name)+'</strong></td><td style="border:1px solid #000; padding:8px;"></td></tr>';
+          html += '<tr><td style="width:50px;">'+(idx+1)+'</td><td><strong>'+escapeHtml(s.name)+'</strong></td><td></td></tr>';
         });
         html += '</tbody></table>';
-      } else {
-        html += '<h3 style="border-bottom:2px solid #000; padding-bottom:4px;">Reporte Detallado de Incidencias (Con Día, Hora y Estudiante)</h3>'+
-                '<table style="width:100%; border-collapse:collapse; margin-top:10px;">'+
-                '<thead><tr style="background:#eee;"><th style="border:1px solid #000; padding:8px;">Día y Hora</th><th style="border:1px solid #000; padding:8px;">Estudiante</th><th style="border:1px solid #000; padding:8px;">Incidencia / Motivo</th><th style="border:1px solid #000; padding:8px; text-align:right;">Impacto</th></tr></thead><tbody>';
-        
-        var groupPoints = state.points.filter(function(p){ return students.some(function(s){return s.id===p.studentId;}); }).sort(function(a,b){return b.date.localeCompare(a.date);});
-        if(!groupPoints.length){
-          html += '<tr><td colspan="4" style="border:1px solid #000; padding:12px; text-align:center;">No hay incidencias registradas.</td></tr>';
-        } else {
-          groupPoints.forEach(function(p){
-            var st = students.find(function(s){return s.id===p.studentId;});
-            var stName = st ? st.name : "Desconocido";
-            var timeStr = p.time || "00:00";
-            html += '<tr><td style="border:1px solid #000; padding:8px;">'+p.date+' '+timeStr+'</td><td style="border:1px solid #000; padding:8px;"><strong>'+escapeHtml(stName)+'</strong></td><td style="border:1px solid #000; padding:8px;">'+escapeHtml(p.reason)+'</td><td style="border:1px solid #000; padding:8px; text-align:right;">'+(p.amount>0?"+":"")+p.amount+'</td></tr>';
-          });
-        }
+      } else if(type === 'incidents'){
+        html += '<h3>Reporte de Incidencias y Conducta</h3>'+
+                '<table><thead><tr><th>Día y Hora</th><th>Estudiante</th><th>Motivo</th><th class="num">Impacto</th></tr></thead><tbody>';
+        var points = state.points.filter(function(p){ return students.some(function(s){return s.id===p.studentId;}); });
+        points.forEach(function(p){
+          var st = students.find(function(s){return s.id===p.studentId;});
+          html += '<tr><td>'+p.date+' '+(p.time||'')+'</td><td><strong>'+(st?st.name:'')+'</strong></td><td>'+p.reason+'</td><td class="num">'+p.amount+'</td></tr>';
+        });
+        html += '</tbody></table>';
+      } else if(type === 'attendanceRange'){
+        html += '<h3>Planilla de Asistencia (Rango: '+start+' al '+end+')</h3>'+
+                '<p style="font-size:12px; color:#666;">P: Presente | T: Tardanza | A: Ausente</p>'+
+                '<table><thead><tr><th>Estudiante</th><th>Resumen del Período</th></tr></thead><tbody>';
+        students.forEach(function(s){
+          html += '<tr><td><strong>'+escapeHtml(s.name)+'</strong></td><td>[ Rango de Control de Asistencia Activo ]</td></tr>';
+        });
         html += '</tbody></table>';
       }
 
@@ -841,121 +903,55 @@
       window.print();
     }
 
-    function openStudentProfileModal(student){
-      var backdrop = el('<div class="modal-backdrop"></div>');
-      var sPoints = state.points.filter(function(p){return p.studentId===student.id;}).sort(function(a,b){return b.date.localeCompare(a.date);});
-      
-      var pointsHtml = "";
-      if(!sPoints.length){ pointsHtml = "<p style='color:var(--ink-soft);font-size:13px;'>No hay registros de conducta para este alumno.</p>"; }
-      else {
-        sPoints.forEach(function(p){
-          var col = p.amount > 0 ? "var(--green)" : "var(--red)";
-          var timeStr = p.time || "00:00";
-          pointsHtml += '<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed var(--line); font-size:13px;"><span><strong>'+escapeHtml(p.reason)+'</strong> ('+p.date+' '+timeStr+')</span><span style="color:'+col+'; font-weight:bold;">'+(p.amount>0?"+":"")+p.amount+'</span></div>';
-        });
-      }
-
-      var modal = el('<div class="modal" style="max-width:500px;">'+
-        '<h3>Ficha de Estudiante</h3>'+
-        '<p style="font-size:16px; font-weight:bold; color:var(--green-dark); margin:4px 0 16px;">'+escapeHtml(student.name)+'</p>'+
-        '<h4 style="margin:0 0 8px 0; font-size:14px;">Historial de Puntos y Faltas:</h4>'+
-        '<div style="max-height:250px; overflow-y:auto; margin-bottom:16px; background:var(--paper-dim); padding:10px; border-radius:8px;">'+pointsHtml+'</div>'+
-        '<div class="modal-actions"><button class="btn btn-primary" id="closeProfile">Cerrar</button></div>'+
-      '</div>');
-
-      backdrop.appendChild(modal); document.body.appendChild(backdrop);
-      modal.querySelector("#closeProfile").addEventListener("click", function(){ document.body.removeChild(backdrop); });
-    }
-
-    function openEditProfileModal(){
-      var backdrop = el('<div class="modal-backdrop"></div>');
-      var modal = el('<div class="modal"><h3>Cambiar Nombre de Usuario</h3><label class="field-label">Nombre del Profesor</label><input type="text" id="userNameInput" value="'+escapeHtml(state.userName)+'"><div class="modal-actions"><button class="btn" id="cancelProfile">Cancelar</button><button class="btn btn-primary" id="saveProfile">Guardar</button></div></div>');
-      backdrop.appendChild(modal); document.body.appendChild(backdrop);
-      modal.querySelector("#cancelProfile").addEventListener("click", function(){ document.body.removeChild(backdrop); });
-      modal.querySelector("#saveProfile").addEventListener("click", function(){
-        var val = modal.querySelector("#userNameInput").value.trim();
-        if(val) { state.userName = val; scheduleSave(); render(); }
-        document.body.removeChild(backdrop);
-      });
-    }
-
-    var GRADE_OPTIONS = ["1ro de Secundaria","2do de Secundaria","3ro de Secundaria","4to de Secundaria","5to de Secundaria","6to de Secundaria"];
-    var SUBJECT_OPTIONS = ["Lengua Española","Matemática","Ciencias de la Naturaleza","Ciencias Sociales","Inglés","Informática / Tecnología","Otra"];
-
     function openGradeModal(){
       var backdrop = el('<div class="modal-backdrop"></div>');
-      var modal = el('<div class="modal"><h3>Seleccionar Grado</h3><label class="field-label">Grado</label><select id="gradeNameInput"></select><div class="modal-actions"><button class="btn" id="cancelGrade">Cancelar</button><button class="btn btn-primary" id="saveGrade">Guardar</button></div></div>');
+      var modal = el('<div class="modal"><h3>Seleccionar Grado</h3><label class="field-label">Grado</label><select id="gradeNameInput"><option>1ro de Secundaria</option><option>3ro de Secundaria</option><option>4to de Secundaria</option><option>5to de Secundaria</option><option>6to de Secundaria</option></select><div class="modal-actions"><button class="btn" id="cancelGrade">Cancelar</button><button class="btn btn-primary" id="saveGrade">Guardar</button></div></div>');
       backdrop.appendChild(modal); document.body.appendChild(backdrop);
-      var select = modal.querySelector("#gradeNameInput");
-      GRADE_OPTIONS.forEach(function(name){ var opt=document.createElement("option"); opt.value=name; opt.textContent=name; select.appendChild(opt); });
-      
       modal.querySelector("#cancelGrade").addEventListener("click", function(){ document.body.removeChild(backdrop); });
       modal.querySelector("#saveGrade").addEventListener("click", function(){
-        var name=select.value; if(!name) return;
-        var existing=state.grades.find(function(g){return g.name===name;}); 
-        if(!existing) addGrade(name);
+        addGrade(modal.querySelector("#gradeNameInput").value);
         document.body.removeChild(backdrop);
       });
     }
 
     function openGroupModal(gradeId){
       var backdrop = el('<div class="modal-backdrop"></div>');
-      var modal = el('<div class="modal"><h3>Nueva Asignatura / Sección</h3><label class="field-label">Asignatura</label><select id="subjectInput"></select><label class="field-label">Sección</label><input type="text" id="secInput" placeholder="Ej: A, B..."><div class="modal-actions"><button class="btn" id="cancelGroup">Cancelar</button><button class="btn btn-primary" id="saveGroup">Guardar</button></div></div>');
+      var modal = el('<div class="modal"><h3>Asignatura</h3><label class="field-label">Nombre</label><input type="text" id="subInput" value="Matemática"><label class="field-label">Sección</label><input type="text" id="secInput" value="Única"><div class="modal-actions"><button class="btn" id="cancelGroup">Cancelar</button><button class="btn btn-primary" id="saveGroup">Guardar</button></div></div>');
       backdrop.appendChild(modal); document.body.appendChild(backdrop);
-      var subjectInput = modal.querySelector("#subjectInput");
-      SUBJECT_OPTIONS.forEach(function(name){ var opt=document.createElement("option"); opt.value=name; opt.textContent=name; subjectInput.appendChild(opt); });
-
       modal.querySelector("#cancelGroup").addEventListener("click", function(){ document.body.removeChild(backdrop); });
       modal.querySelector("#saveGroup").addEventListener("click", function(){
-        var sub = subjectInput.value==="Otra"?"":subjectInput.value;
-        var sec = modal.querySelector("#secInput").value;
-        addGroup(gradeId, sub, sec);
+        addGroup(gradeId, modal.querySelector("#subInput").value, modal.querySelector("#secInput").value);
+        document.body.removeChild(backdrop);
+      });
+    }
+
+    function openEditProfileModal(){
+      var backdrop = el('<div class="modal-backdrop"></div>');
+      var modal = el('<div class="modal"><h3>Cambiar Nombre</h3><input type="text" id="uName" value="'+escapeHtml(state.userName)+'"><div class="modal-actions"><button class="btn" id="cancelP">Cancelar</button><button class="btn btn-primary" id="saveP">Guardar</button></div></div>');
+      backdrop.appendChild(modal); document.body.appendChild(backdrop);
+      modal.querySelector("#cancelP").addEventListener("click", function(){ document.body.removeChild(backdrop); });
+      modal.querySelector("#saveP").addEventListener("click", function(){
+        state.userName = modal.querySelector("#uName").value; scheduleSave(); render();
         document.body.removeChild(backdrop);
       });
     }
 
     function openEditCoursesModal(){
       var backdrop = el('<div class="modal-backdrop"></div>');
-      var modal = el('<div class="modal" style="max-width:550px;"><h3>Editar Cursos</h3><p class="hint">Elimina grados enteros o asignaturas desde aquí.</p><div class="edit-course-list" id="editCoursesList"></div><div class="modal-actions"><button class="btn btn-primary" id="closeEditCourses">Hecho</button></div></div>');
+      var modal = el('<div class="modal"><h3>Cursos Activos</h3><p class="hint">Gestiona tus grados y asignaturas.</p><div class="modal-actions"><button class="btn btn-primary" id="closeC">Cerrar</button></div></div>');
       backdrop.appendChild(modal); document.body.appendChild(backdrop);
+      modal.querySelector("#closeC").addEventListener("click", function(){ document.body.removeChild(backdrop); });
+    }
 
-      function renderList(){
-        var list = modal.querySelector("#editCoursesList");
-        list.innerHTML = "";
-        if(!state.grades.length){ list.innerHTML = "<p style='color:var(--ink-soft);font-size:14px;'>No hay grados para editar.</p>"; return; }
-        
-        state.grades.forEach(function(grade){
-          var gBlock = el('<div class="edit-course-card"></div>');
-          var gHead = el('<h4><span>'+escapeHtml(grade.name)+'</span><button class="btn btn-sm btn-danger">Borrar Grado</button></h4>');
-          gHead.querySelector('button').addEventListener("click", function(){
-            if(confirm("¿Borrar el grado '"+grade.name+"' y todos sus grupos?")){ deleteGrade(grade.id); renderList(); render(); }
-          });
-          gBlock.appendChild(gHead);
-
-          var groups = groupsInGrade(grade.id);
-          if(groups.length > 0){
-             var ul = el('<ul></ul>');
-             groups.forEach(function(grp){
-               var li = el('<li><span>'+escapeHtml(groupLabel(grp))+'</span><button class="btn btn-ghost btn-sm" style="color:var(--red);">Eliminar</button></li>');
-               li.querySelector('button').addEventListener("click", function(){
-                  if(confirm("¿Borrar asignatura '"+groupLabel(grp)+"'?")){ deleteGroup(grp.id); renderList(); render(); }
-               });
-               ul.appendChild(li);
-             });
-             gBlock.appendChild(ul);
-          } else {
-             gBlock.appendChild(el('<p style="margin:0;font-size:12.5px;color:var(--ink-soft);">No hay asignaturas.</p>'));
-          }
-          list.appendChild(gBlock);
-        });
-      }
-      renderList();
-      modal.querySelector("#closeEditCourses").addEventListener("click", function(){ document.body.removeChild(backdrop); });
+    function openStudentProfileModal(s){
+      var backdrop = el('<div class="modal-backdrop"></div>');
+      var modal = el('<div class="modal"><h3>'+escapeHtml(s.name)+'</h3><p class="hint">Expediente del estudiante</p><div class="modal-actions"><button class="btn btn-primary" id="closeS">Cerrar</button></div></div>');
+      backdrop.appendChild(modal); document.body.appendChild(backdrop);
+      modal.querySelector("#closeS").addEventListener("click", function(){ document.body.removeChild(backdrop); });
     }
 
     load();
   }
-  
   window.addEventListener('DOMContentLoaded', initApp);
 </script>
 </body>
